@@ -12,7 +12,7 @@ def fibExp(n):
 
 print (fibExp(10))
 
-def fibLinear(n):
+def fabLinear(n):
     if n == 0:
         return 1
     if n == 1:
@@ -28,4 +28,4 @@ def fibLinear(n):
     mult = (len(array) - 3) 
     return array[n],add, mult
 
-print(fibLinear(10))
+print(fabLinear(10))
