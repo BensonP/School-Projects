@@ -10,7 +10,7 @@ def fibExp(n):
         return 1
     return (fibExp(n-1) + fibExp(n-2) * fibExp(n-3))
 
-print (fibExp(10))
+print (fibExp(100))
 
 def fabLinear(n):
     if n == 0:
