@@ -18,12 +18,12 @@ def mod_exp(x, y, N):
 
 def fprobability(k):
     # You will need to implement this function and change the return value.   
-    return 1/(2**k)
+    return (1 - 1/(2**k))
 
 
 def mprobability(k):
     # You will need to implement this function and change the return value.   
-    return 
+    return  (1 - 3/(4**k))
 
 
 def run_fermat(N,k):
@@ -35,25 +35,39 @@ def run_fermat(N,k):
     #  hi, inclusive.
     for i in range(k):
         a = random.randint(1, N - 1)
-        if a**(N-1) % N ==1:
+        if mod_exp(a,N-1,N) ==1:
             return 'prime'
         else:
             return 'composite'
         
-print(run_fermat(8,2))
-print(fprobability(2))
+print(run_fermat(7,5))
+print(fprobability(5))
 
 
 def run_miller_rabin(N,k):
     for i in range(k):
         a = random.randint(1, N - 1)
-        if a**(N-1) % N ==1:
-            if N-1//2 != 0
-            a**((N-1)//2)
+        n = N-1
+        if  mod_exp(a,n,N) == 1:
+            while n % 2 == 0:
+                n = n/2
+                r = mod_exp(a,n,N)
+                if r == N - 1:
+                    break
+                if r != 1:
+                    return 'composite'
+                if r == 1 and n % 2 == 1:
+                    break
+        else:
+            return 'composite'
+    return 'prime'
+    
+
+print(run_miller_rabin(8,1))
+print(mprobability(1))
     # You will need to implement this function and change the return value, which should be
     # either 'prime' or 'composite'.
     #
     # To generate random values for a, you will most likley want to use
     # random.randint(low,hi) which gives a random integer between low and
     #  hi, inclusive.
-    return 'composite'
