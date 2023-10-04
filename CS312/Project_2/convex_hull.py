@@ -28,7 +28,7 @@ class ConvexHullSolver(QObject):
 # Class constructor
 	def __init__( self):
 		super().__init__()
-		self.pause = False
+		self.pause = False 	
 
 # Some helper methods that make calls to the GUI, allowing us to send updates
 # to be displayed.
