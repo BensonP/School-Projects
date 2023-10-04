@@ -37,28 +37,70 @@ class HullSolver():
         leftHull = self.solveHull(Hull(hull.points[:len(hull.points)//2]))
         rightHull = self.solveHull(Hull(hull.points[len(hull.points)//2:len(hull.points)]))
 
-        self.solveLeft(leftHull.RM, rightHull.LM)
-        self.solveRight(rightHull.LM.CCW, rightHull.LM)
+        hull = self.combine(leftHull, rightHull)
         return hull
 
-    def solveLeft(self, leftHullRight, rightHullLeft):
-        slope = self.getSlope(leftHullRight.point, rightHullLeft.point)
-        slope2 = self.getSlope(leftHullRight.CCW.point, rightHullLeft.point)
-        if slope2 < slope:
-            self.solveLeft(leftHullRight.CCW, rightHullLeft)
-        else:
-            rightHullLeft.CCW = leftHullRight
-            leftHullRight.CW = rightHullLeft
-            ##???? what now?
+    def combine(self, leftHull, rightHull):
+        rightPoint = leftHull.RM
+        leftPoint = rightHull.LM
+        if len(leftHull.points) == 1:
+            leftHull.RM = rightHull.RM
+            leftHull.LM.CR = leftHull.RM
+            leftHull.LM.CCW = leftHull.RM
+            leftHull.RM.CW = leftHull.LM
+            leftHull.RM.CCW = leftHull.LM
+            return leftHull
+        self.compareLeftCW(leftPoint, rightPoint)
+        self.compareLeftCCW(leftPoint, rightPoint)
+        self.compareRightCCW(leftPoint, rightPoint)
+        self.compareRightCW(leftPoint, rightPoint)
+        leftHull.RM = rightHull.RM
+        return leftHull
+
+
 
     def solveRight(self, leftHullRight, rightHullLeft):
         slope = self.getSlope(leftHullRight.point, rightHullLeft.point)
-        slope2 = self.getSlope(leftHullRight.point, rightHullLeft.CW.point)
-        if slope2 > slope:
-            self.solveRight(leftHullRight, rightHullLeft.CW)
+        if(rightHullLeft.point != rightHullLeft.CW.point):
+            slope2 = self.getSlope(leftHullRight.point, rightHullLeft.CW.point)
+            if slope2 > slope:
+                self.solveRight(leftHullRight, rightHullLeft.CW)
         else:
             leftHullRight.CW = rightHullLeft
             rightHullLeft.CW =leftHullRight
 
+    def compareLeftCCW(self, leftNode, rightNode):
+        slope = self.getSlope(leftNode.point, rightNode.point)
+        slope2 = self.getSlope(leftNode.CCW.point, rightNode.point)
+        if slope2 < slope:
+            self.compareLeftCCW(leftNode.CCW, rightNode)
+        else:
+            rightNode.CCW = leftNode
+            leftNode.CW = rightNode
 
+    def compareLeftCW(self, leftNode, rightNode):
+        slope = self.getSlope(leftNode.point, rightNode.point)
+        slope2 = self.getSlope(leftNode.CW.point, rightNode.point)
+        if slope2 > slope:
+            self.compareLeftCW(leftNode.CW, rightNode)
+        else:
+            rightNode.CW = leftNode
+            leftNode.CCW = rightNode
 
+    def compareRightCCW(self, leftNode, rightNode):
+        slope = self.getSlope(leftNode.point, rightNode.point)
+        slope2 = self.getSlope(leftNode.point, rightNode.CCW.point)
+        if slope2 < slope:
+            self.compareRightCCW(leftNode, rightNode.CCW)
+        else:
+            rightNode.CW = leftNode
+            leftNode.CCW = rightNode 
+
+    def compareRightCW(self, leftNode, rightNode):
+        slope = self.getSlope(leftNode.point, rightNode.point)
+        slope2 = self.getSlope(leftNode.point, rightNode.CW.point)
+        if slope2 > slope:
+            self.compareRightCW(leftNode, rightNode.CW)
+        else:
+            rightNode.CCW = leftNode
+            leftNode.CW = rightNode 
