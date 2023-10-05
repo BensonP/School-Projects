@@ -58,6 +58,7 @@ class ConvexHullSolver(QObject):
 		self.view.displayStatusText(text)
 
 
+
 # This is the method that gets called by the GUI and actually executes
 # the finding of the hull
 	def compute_hull( self, points, pause, view):
@@ -73,10 +74,9 @@ class ConvexHullSolver(QObject):
 
 		t3 = time.time()
 		# this is a dummy polygon of the first 3 unsorted points
-		hull = Hull(points)
-		hullSolver = HullSolver()
-		polygon = hullSolver.solveHull(hull)
-		polygon = [QLineF(points[i],points[(i+1)%3]) for i in range(3)]
+		polygon = solveHull(points)
+		points = getPoints(polygon)
+		polygon = getPolygon(points)
 		# TODO: REPLACE THE LINE ABOVE WITH A CALL TO YOUR DIVIDE-AND-CONQUER CONVEX HULL SOLVER
 		t4 = time.time()
 
