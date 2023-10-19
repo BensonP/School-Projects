@@ -73,14 +73,12 @@ class ConvexHullSolver(QObject):
 		t2 = time.time()
 
 		t3 = time.time()
-		# this is a dummy polygon of the first 3 unsorted points
-		polygon = solveHull(points)
+		
+		polygon = solveHull(points) #total O(nlogn) time, o(n) space. 
 		points = getPoints(polygon)
 		polygon = getPolygon(points)
-		# TODO: REPLACE THE LINE ABOVE WITH A CALL TO YOUR DIVIDE-AND-CONQUER CONVEX HULL SOLVER
+		
 		t4 = time.time()
 
-		# when passing lines to the display, pass a list of QLineF objects.  Each QLineF
-		# object can be created with two QPointF objects corresponding to the endpoints
 		self.showHull(polygon,RED)
 		self.showText('Time Elapsed (Convex Hull): {:3.3f} sec'.format(t4-t3))

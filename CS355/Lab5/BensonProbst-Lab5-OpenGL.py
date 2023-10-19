@@ -1,4 +1,5 @@
 import sys
+import math
 
 try:
     from OpenGL.GLUT import *
@@ -17,6 +18,11 @@ except:
 
 DISPLAY_WIDTH = 500.0
 DISPLAY_HEIGHT = 500.0
+CAMERA_X = 0
+CAMERA_Y = 0
+CAMERA_Z = -10
+ANGLE = 0
+PERSP = True
 
 def init(): 
     glClearColor (0.0, 0.0, 0.0, 0.0)
@@ -74,91 +80,79 @@ def drawHouse ():
     glEnd()
 
 
-camera_x = 0
-camera_y = 0
-camera_z = 0
-
 def display():
     glClear (GL_COLOR_BUFFER_BIT)
     glColor3f (1.0, 1.0, 1.0)
-    # viewing transformation 
 
-    
-    #Your Code Here
     glMatrixMode(GL_PROJECTION)
-    #glOrtho(-10, 10, -10, 10, -5, 100)
-    #gluPerspective(90, 1, 1, 512)
-    #glTranslated(0,0,-10)
-    glMatrixMode(GL_MODELVIEW)
     
+    glLoadIdentity()
+    if(PERSP):
+        gluPerspective(90, 1, 1, 512)
+    else:
+        glOrtho(-10, 10, -10, 10, 1, 100)
 
-    
-    
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    glRotated(ANGLE,0,1,0)
+    glTranslated(CAMERA_X,CAMERA_Y,CAMERA_Z)
+
     drawHouse()
 
-    
     glFlush()
     
 
 def keyboard(key, x, y):
+    global CAMERA_X
+    global CAMERA_Y
+    global CAMERA_Z
+    global ANGLE
+    global PERSP
     
     if key == chr(27):
         import sys
         sys.exit(0)
   
     if key == b'w':
-        glMatrixMode(GL_PROJECTION)
-        glTranslated(0,0,1)
-        print("W is pressed, go forward")
-
-    if key == b'a':
-        glMatrixMode(GL_PROJECTION)
-        glTranslated(1,0,0)
-        print("A is pressed, go left")
+        CAMERA_Z += math.sin(math.radians(ANGLE + 90))
+        CAMERA_X += math.cos(math.radians(ANGLE + 90))
 
     if key == b's':
-        glMatrixMode(GL_PROJECTION)
-        glTranslated(0,0,-1)
-        print("S is pressed, go back")
+        CAMERA_Z -= math.sin(math.radians(ANGLE + 90))
+        CAMERA_X -= math.cos(math.radians(ANGLE + 90))
+        
+
+    if key == b'a':
+        CAMERA_Z += math.sin(math.radians(ANGLE))
+        CAMERA_X += math.cos(math.radians(ANGLE))
 
     if key == b'd':
-        glMatrixMode(GL_PROJECTION)
-        glTranslated(-1,0,0)
-        print("D is pressed, go right")
+        CAMERA_Z -= math.sin(math.radians(ANGLE))
+        CAMERA_X -= math.cos(math.radians(ANGLE))
 
     if key == b'r':
-        glTranslated(0,-1,0)
-        print("R is pressed, go up")
+        CAMERA_Y -=1
 
     if key == b'f':
-        glTranslated(0,1,0)
-        print("F is pressed, go down")
-
-    if key == b'q':
-        glRotated(-1,0,1,0)
-        print("Q is pressed, rotate right")
+        CAMERA_Y +=1
 
     if key == b'e':
-        glRotated(1,0,1,0)
-        print("E is pressed, rotate left")
+        ANGLE +=1
+
+    if key == b'q':
+        ANGLE -=1
 
     if key == b'h':
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(90, 1, 1, 512)
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        print("H is pressed, return home")
+        CAMERA_X = 0
+        CAMERA_Y = 0
+        CAMERA_Z = -10
+        ANGLE = 0
 
     if key == b'o':
-        glMatrixMode(GL_PROJECTION)
-        glOrtho(-1, 1, -1, 1, 1, 200)
-        print("O is pressed, orthographic projection")
+        PERSP = False
 
     if key == b'p':
-        glMatrixMode(GL_PROJECTION)
-        gluPerspective(0,1,1,512)
-        print("P is pressed, perspective projection")
+        PERSP = True
   
     glutPostRedisplay()
 
