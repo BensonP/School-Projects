@@ -21,7 +21,7 @@ class NetworkRoutingSolver:
         #       INSTEAD OF THE DUMMY SET OF EDGES BELOW
         #       IT'S JUST AN EXAMPLE OF THE FORMAT YOU'LL 
         #       NEED TO USE
-        path_edges = []
+        path_edges = self.shortestPath()
         total_length = 0
         node = self.network.nodes[self.source]
         edges_left = 3
@@ -32,6 +32,17 @@ class NetworkRoutingSolver:
             node = edge.dest
             edges_left -= 1
         return {'cost':total_length, 'path':path_edges}
+    
+    def shortestPath(self):
+        edges = []
+        currNode = self.paths[self.dest][0]
+        while currNode.node_id != self.source:
+            for E in currNode.neighbors:
+                if E.dest == currNode and E.src == self.paths[currNode.node_id][2]:
+                    edges.append[E]
+            currNode = self.paths[currNode.node_id][2]
+        return edges
+
 
     def computeShortestPaths( self, srcIndex, use_heap=False ):
         self.source = srcIndex
@@ -42,7 +53,8 @@ class NetworkRoutingSolver:
         #       CALL TO getShortestPath(dest_index)
         if use_heap == False:
             dArray = queueUnsortedArray(self.network, srcIndex)
-            paths = queueUnsortedArray.dijkstrasArray(dArray)
+            self.paths = dArray.dijkstrasArray()
+
 
 
         t2 = time.time()
@@ -65,25 +77,70 @@ class queueUnsortedArray:
 
         def findMin(self):
             currentMin = float('inf')
-            for V in self.queue:
-                if self.queue[V][1] < currentMin and self.queue[V][3] == 0:
-                    currentMin = self.queue[V][0].node_id
+            for key in self.queue:
+                if self.queue[key][1] < currentMin and self.queue[key][3] == 0:
+                    currentMin = self.queue[key][0].node_id
             if currentMin != float('inf'):
                 return currentMin
             else: 
-                return self.queue[self.start][0]
+                return self.queue[self.start][0].node_id
 
         def dijkstrasArray(self):
             currentNode = self.queue[self.start][0]
             visited = 0
             while visited == 0:
                 for N in currentNode.neighbors:
+                    len = N.length
                     current_id = currentNode.node_id
-                    if N.length <= self.queue[current_id][1]:
+                    if N.length <= self.queue[N.dest.node_id][1]:
                         self.queue[N.dest.node_id][1] = N.length + self.queue[current_id][1]
-                        self.queue[N.dest.node_id][2] = self.queue[current_id][0]
+                        self.queue[N.dest.node_id][2] = current_id
                     self.queue[current_id][3] = 1
-                    currentNode = self.queue[self.findMin()][0]
+                    min = self.findMin()
+                    currentNode = self.queue[min][0]
+                    if self.queue[currentNode.node_id][3] == 1:
+                        visited = 1                
+            return self.queue
+
+
+class queueUnsortedArray2:
+        def __init__( self,G,srcIndex):
+            self.start = srcIndex
+            self.queue = {}
+            self.makeQueue(G)
+    
+        def insert(self,V):
+            self.queue[V.node_id] = [V,float('inf'), None, 0]
+
+        def makeQueue(self,G):
+            nodes = G.getNodes()
+            for V in nodes:
+                self.insert(V)
+            self.queue[self.start] = [nodes[self.start],0,None,0]
+
+        def findMin(self):
+            currentMin = float('inf')
+            for key in self.queue:
+                if self.queue[key][1] < currentMin and self.queue[key][3] == 0:
+                    currentMin = self.queue[key][0].node_id
+            if currentMin != float('inf'):
+                return currentMin
+            else: 
+                return self.queue[self.start][0].node_id
+
+        def dijkstrasArray(self):
+            currentNode = self.queue[self.start][0]
+            visited = 0
+            while visited == 0:
+                for N in currentNode.neighbors:
+                    len = N.length
+                    current_id = currentNode.node_id
+                    if N.length <= self.queue[N.dest.node_id][1]:
+                        self.queue[N.dest.node_id][1] = N.length + self.queue[current_id][1]
+                        self.queue[N.dest.node_id][2] = current_id
+                    self.queue[current_id][3] = 1
+                    min = self.findMin()
+                    currentNode = self.queue[min][0]
                     if self.queue[currentNode.node_id][3] == 1:
                         visited = 1                
             return self.queue
