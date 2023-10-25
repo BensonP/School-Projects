@@ -60,6 +60,49 @@ class NetworkRoutingSolver:
 
         t2 = time.time()
         return (t2-t1)
+    
+class queueUnsortedArray:
+        def __init__( self,G,srcIndex):
+            self.start = srcIndex
+            self.queue = {}
+            self.makeQueue(G)
+    
+        def insert(self,V):
+            self.queue[V.node_id] = [V,float('inf'), None, 0]
+
+        def makeQueue(self,G):
+            nodes = G.getNodes()
+            for V in nodes:
+                self.insert(V)
+            self.queue[self.start] = [nodes[self.start],0,None,0]
+
+        def findMin(self):
+            currentMin = float('inf')
+            for key in self.queue:
+                if self.queue[key][1] < currentMin and self.queue[key][3] == 0:
+                    currentMin = self.queue[key][0].node_id
+            if currentMin != float('inf'):
+                return currentMin
+            else: 
+                return self.queue[self.start][0].node_id
+
+        def dijkstrasArray(self):
+            currentNode = self.queue[self.start][0]
+            visited = 0
+            while visited == 0:
+                for N in currentNode.neighbors:
+                    len = N.length
+                    current_id = currentNode.node_id
+                    if N.length <= self.queue[N.dest.node_id][1]:
+                        self.queue[N.dest.node_id][1] = N.length + self.queue[current_id][1]
+                        self.queue[N.dest.node_id][2] = current_id
+                    self.queue[current_id][3] = 1
+                    min = self.findMin()
+                    currentNode = self.queue[min][0]
+                    if self.queue[currentNode.node_id][3] == 1:
+                        visited = 1                
+            return self.queue
+
 
 class queueUnsortedArray2:
         def __init__( self,srcIndex):
