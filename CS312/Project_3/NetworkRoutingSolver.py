@@ -116,9 +116,9 @@ class queueUnsortedArray2:
             currentMin = float('inf')
             if len(self.queue) != 0:
                 for key in self.queue:
-                    if self.queue[key] < currentMin:
-                        currentMin = key
-                        del self.queue[key]
+                if self.queue[key][1] < currentMin and self.queue[key][3] == 0:
+                    currentMin = self.queue[key][0].node_id
+            if currentMin != float('inf'):
                 return currentMin
             else:
                 return None
