@@ -21,16 +21,22 @@ class NetworkRoutingSolver:
         #       INSTEAD OF THE DUMMY SET OF EDGES BELOW
         #       IT'S JUST AN EXAMPLE OF THE FORMAT YOU'LL 
         #       NEED TO USE
-        path_edges = self.shortestPath()
-        total_length = 0
-        node = self.network.nodes[self.source]
-        edges_left = 3
-        while edges_left > 0:
-            edge = node.neighbors[2]
+        path_edges = []
+        destNode = self.network.nodes[destIndex]
+        total_length = self.lengths[destNode]
+        length = self.lengths[destNode]
+        currInd = destIndex
+        while length != 0:
+            if self.prev[currInd] == None:
+                return {'cost':float('inf'), 'path':path_edges}
+            prevNode = self.network.nodes[self.prev[currInd]]
+            for N in prevNode.neighbors:
+                if N.dest == destNode:
+                    edge = N
             path_edges.append( (edge.src.loc, edge.dest.loc, '{:.0f}'.format(edge.length)) )
-            total_length += edge.length
-            node = edge.dest
-            edges_left -= 1
+            length = self.lengths[prevNode]
+            currInd = prevNode.node_id
+            destNode = self.network.nodes[currInd]
         return {'cost':total_length, 'path':path_edges}
 
 
@@ -38,71 +44,63 @@ class NetworkRoutingSolver:
     def computeShortestPaths( self, srcIndex, use_heap=False ):
         self.source = srcIndex
         t1 = time.time()
-        paths = []
+        self.paths = []
         # TODO: RUN DIJKSTRA'S TO DETERMINE SHORTEST PATHS.
         #       ALSO, STORE THE RESULTS FOR THE SUBSEQUENT
         #       CALL TO getShortestPath(dest_index)
         if use_heap == False:
-            priQueue = queueUnsortedArray2(srcIndex)
-            priQueue.createQueue(self.network)
-        prev = []
-        for G in priQueue.queue:
-            prev.append(None)
-        priQueue.insert(srcIndex, 0)
-        while len(priQueue.queue) != 0:
-            u = priQueue.deleteMin()
-            for V in u.neighbors:
-                if priQueue.queue[V.dest_node] > priQueue.queue[u] + V.length:
-                    newLength = priQueue.queue[u] + V.length
-                    prev[V.dest_node] = u.node_id
-                    paths.append[V]
-                    priQueue.insert(V.dest_Node, newLength) 
+            self.dijkstrasArray(srcIndex)
+        else:
+            self.dijkstrasHeap(srcIndex)
 
         t2 = time.time()
         return (t2-t1)
     
-class queueUnsortedArray:
-        def __init__( self,G,srcIndex):
-            self.start = srcIndex
-            self.queue = {}
-            self.makeQueue(G)
-    
-        def insert(self,V):
-            self.queue[V.node_id] = [V,float('inf'), None, 0]
+    def dijkstrasHeap(self, srcIndex):
+        priQueue = queueBinaryHeap()
+        priQueue.createQueue(self.network)
+        self.prev = []
+        self.lengths = {}
+        for N in self.network.getNodes():
+            self.prev.append(None)
+            self.lengths[N] = float('inf')
+        self.lengths[self.network.nodes[srcIndex]] = 0
+        priQueue.insert(self.network.nodes[srcIndex], 0)
+        priQueue.currentMin = self.network.nodes[srcIndex]
+        while len(priQueue.heap) != 0:
+            u,length = priQueue.deleteMin()
+            for V in u.neighbors:
+                if V.dest != None:
+                    if self.lengths[V.dest] > length + V.length:
+                        newLength = length + V.length
+                        self.prev[V.dest.node_id] = u.node_id
+                        self.lengths[V.dest] = newLength
+                        if len(priQueue.heap) != 0:
+                            priQueue.decreaseKey(V.dest, newLength)
+                        self.paths.append(V)
 
-        def makeQueue(self,G):
-            nodes = G.getNodes()
-            for V in nodes:
-                self.insert(V)
-            self.queue[self.start] = [nodes[self.start],0,None,0]
-
-        def findMin(self):
-            currentMin = float('inf')
-            for key in self.queue:
-                if self.queue[key][1] < currentMin and self.queue[key][3] == 0:
-                    currentMin = self.queue[key][0].node_id
-            if currentMin != float('inf'):
-                return currentMin
-            else: 
-                return self.queue[self.start][0].node_id
-
-        def dijkstrasArray(self):
-            currentNode = self.queue[self.start][0]
-            visited = 0
-            while visited == 0:
-                for N in currentNode.neighbors:
-                    len = N.length
-                    current_id = currentNode.node_id
-                    if N.length <= self.queue[N.dest.node_id][1]:
-                        self.queue[N.dest.node_id][1] = N.length + self.queue[current_id][1]
-                        self.queue[N.dest.node_id][2] = current_id
-                    self.queue[current_id][3] = 1
-                    min = self.findMin()
-                    currentNode = self.queue[min][0]
-                    if self.queue[currentNode.node_id][3] == 1:
-                        visited = 1                
-            return self.queue
-
+    def dijkstrasArray(self, srcIndex):
+        priQueue = queueUnsortedArray2(srcIndex)
+        priQueue.createQueue(self.network)
+        self.prev = []
+        self.lengths = {}
+        for N in self.network.getNodes():
+            self.prev.append(None)
+            self.lengths[N] = float('inf')
+        self.lengths[self.network.nodes[srcIndex]] = 0
+        priQueue.insert(self.network.nodes[srcIndex], 0)
+        priQueue.currentMin = self.network.nodes[srcIndex]
+        while len(priQueue.queue) != 0:
+            u,length = priQueue.deleteMin()
+            for V in u.neighbors:
+                if V.dest != None:
+                    if self.lengths[V.dest] > length + V.length:
+                        newLength = length + V.length
+                        self.prev[V.dest.node_id] = u.node_id
+                        if priQueue.queue.get(V.dest) != None:
+                            priQueue.insert(V.dest, newLength) 
+                            priQueue.currentMin = V.dest
+                        self.lengths[V.dest] = newLength
 
 class queueUnsortedArray2:
         def __init__( self,srcIndex):
@@ -113,13 +111,17 @@ class queueUnsortedArray2:
             self.queue[V] = weight
 
         def deleteMin(self):
-            currentMin = float('inf')
+            keys = self.queue.keys()
             if len(self.queue) != 0:
-                for key in self.queue:
-                if self.queue[key][1] < currentMin and self.queue[key][3] == 0:
-                    currentMin = self.queue[key][0].node_id
-            if currentMin != float('inf'):
-                return currentMin
+                for key in keys:
+                    if self.queue.get(self.currentMin) == None:
+                        tempMin = key
+                        self.currentMin = tempMin
+                    if self.queue[key] < self.queue[self.currentMin]:
+                        self.currentMin = key
+                currLength = self.queue[self.currentMin]
+                del self.queue[self.currentMin]
+                return self.currentMin, currLength
             else:
                 return None
         
@@ -134,3 +136,88 @@ class queueUnsortedArray2:
         #compare with previousLength(take current key and compare with new key)
         #decreseKey
         #makeQueue
+
+class queueBinaryHeap:
+    def __init__(self):
+        self.heap = []
+        self.priorities = {}
+        self.positions = {}
+        pass
+
+    def bubbleUp(self, V):
+        Vindex = self.positions[V]
+        Pindex = self.getParent(Vindex)
+        if Pindex < len(self.heap) - 1:
+            PNode = self.heap[Pindex]
+            VNode = self.heap[Vindex]
+            test = self.positions[self.heap[Pindex]]
+            if self.priorities[V] < self.priorities[self.heap[Pindex]]:
+                self.positions[V] = Pindex
+                self.positions[PNode] = Vindex
+                self.heap[Vindex] = PNode
+                self.heap[Pindex] = VNode
+                if self.heap[0] != VNode:
+                    self.bubbleUp(VNode)
+
+
+    def siftDown(self,V):
+        Vindex = self.positions[V]
+        RCindex = self.getRChild(Vindex)
+        LCIndex = self.getLChild(Vindex)
+        VNode = self.heap[Vindex]
+        if RCindex > len(self.heap) - 1 and RCindex < len(self.heap) - 1:
+            RCNode = self.heap[RCindex]
+            LCNode = self.heap[LCIndex]
+            if self.priorities[RCNode] < self.priorities[LCNode]:
+                smallChild = self.priorities[RCNode]
+                smallChildInd = RCindex
+            else:
+                smallChild = self.priorities[LCNode]
+                smallChildInd = LCIndex
+            if self.priorities[V] > smallChild:
+                self.positions[V] = self.positions[self.heap[smallChildInd]]
+                self.positions[smallChild] = Vindex
+                self.heap[Vindex] = smallChild
+                self.heap[smallChildInd] = VNode
+                self.siftDown(smallChild)
+
+    def minChild(self,V):
+        pass
+
+    def insert(self, V, pri):
+        if self.positions.get(V)!= None:
+            self.decreaseKey(V, pri)
+        else:
+            self.heap.append(V)
+            self.priorities[V] = float('inf')
+            self.positions[V] = self.heap.index(V)
+            self.bubbleUp(V)
+
+    def createQueue(self, G):
+        for V in G.nodes:
+            self.heap.append(V)
+            self.priorities[V] = float('inf')
+            self.positions[V] = self.heap.index(V)
+
+    def deleteMin(self):
+        min = self.heap[0]
+        self.heap[0] = self.heap[len(self.heap) - 1]
+        self.positions[self.heap[0]] = 0
+        self.siftDown(self.heap[0])
+        del self.heap[-1]
+        return min,self.priorities[min]
+
+    def decreaseKey(self, V, newPri):
+        self.priorities[V] = newPri
+        if self.heap[0] != V:
+            self.bubbleUp(V)
+        
+
+    def getParent(self,i):
+        return ((i + 1)//2) - 1
+
+    def getLChild(self,i):
+        return (i + 1)* 2 - 1
+
+    def getRChild(self,i):
+        return (i + 1) * 2
