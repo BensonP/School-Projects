@@ -60,7 +60,6 @@ class NetworkRoutingSolver:
         priQueue = queueBinaryHeap()
         priQueue.createQueue(self.network)
         self.prev = []
-        self.lengths = {}
         for N in self.network.getNodes():
             self.prev.append(None)
             self.lengths[N] = float('inf')
@@ -71,13 +70,13 @@ class NetworkRoutingSolver:
             u,length = priQueue.deleteMin()
             for V in u.neighbors:
                 if V.dest != None:
-                    if self.lengths[V.dest] > length + V.length:
+                    if priQueue.priorities[V.dest] > length + V.length:
                         newLength = length + V.length
                         self.prev[V.dest.node_id] = u.node_id
-                        self.lengths[V.dest] = newLength
+                        priQueue.priorities[V.dest] = newLength
                         if len(priQueue.heap) != 0:
                             priQueue.decreaseKey(V.dest, newLength)
-                        self.paths.append(V)
+        self.lengths = priQueue.priorities
 
     def dijkstrasArray(self, srcIndex):
         priQueue = queueUnsortedArray2(srcIndex)
@@ -151,7 +150,7 @@ class queueBinaryHeap:
             PNode = self.heap[Pindex]
             VNode = self.heap[Vindex]
             test = self.positions[self.heap[Pindex]]
-            if self.priorities[V] < self.priorities[self.heap[Pindex]]:
+            if self.priorities[V] < self.priorities[PNode]:
                 self.positions[V] = Pindex
                 self.positions[PNode] = Vindex
                 self.heap[Vindex] = PNode
@@ -162,27 +161,32 @@ class queueBinaryHeap:
 
     def siftDown(self,V):
         Vindex = self.positions[V]
-        RCindex = self.getRChild(Vindex)
-        LCIndex = self.getLChild(Vindex)
-        VNode = self.heap[Vindex]
-        if RCindex > len(self.heap) - 1 and RCindex < len(self.heap) - 1:
-            RCNode = self.heap[RCindex]
-            LCNode = self.heap[LCIndex]
-            if self.priorities[RCNode] < self.priorities[LCNode]:
-                smallChild = self.priorities[RCNode]
-                smallChildInd = RCindex
-            else:
-                smallChild = self.priorities[LCNode]
-                smallChildInd = LCIndex
-            if self.priorities[V] > smallChild:
+        smallChild, smallChildInd = self.minChild(V)
+        if smallChild != None and smallChildInd != None:
+            if self.priorities[V] > self.priorities[smallChild]:
                 self.positions[V] = self.positions[self.heap[smallChildInd]]
                 self.positions[smallChild] = Vindex
                 self.heap[Vindex] = smallChild
-                self.heap[smallChildInd] = VNode
-                self.siftDown(smallChild)
+                self.heap[smallChildInd] = V
+                self.siftDown(V)
+
+    
 
     def minChild(self,V):
-        pass
+        Vindex = self.positions[V]
+        RCindex = self.getRChild(Vindex)
+        LCindex = self.getLChild(Vindex)
+        if LCindex == None and RCindex == None:
+            return None,None
+        LCNode = self.heap[LCindex]
+        if LCindex != None and RCindex == None:
+            return LCNode,LCindex
+        RCNode = self.heap[RCindex]
+        if LCindex != None and RCindex != None:
+            if self.priorities[RCNode] < self.priorities[LCNode]:
+                return RCNode,RCindex
+            else: return LCNode, LCindex
+
 
     def insert(self, V, pri):
         if self.positions.get(V)!= None:
@@ -217,7 +221,15 @@ class queueBinaryHeap:
         return ((i + 1)//2) - 1
 
     def getLChild(self,i):
-        return (i + 1)* 2 - 1
+        Lindex = (i + 1)* 2 - 1
+        if Lindex < len(self.heap) - 1:
+            return Lindex
+        else:
+            return None
 
     def getRChild(self,i):
-        return (i + 1) * 2
+        Rindex = (i + 1) * 2
+        if Rindex < len(self.heap) - 1:
+            return Rindex
+        else:
+            return None
