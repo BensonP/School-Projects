@@ -62,8 +62,6 @@ class NetworkRoutingSolver:
         self.prev = []
         for N in self.network.getNodes():
             self.prev.append(None)
-            self.lengths[N] = float('inf')
-        self.lengths[self.network.nodes[srcIndex]] = 0
         priQueue.insert(self.network.nodes[srcIndex], 0)
         priQueue.currentMin = self.network.nodes[srcIndex]
         while len(priQueue.heap) != 0:
@@ -79,7 +77,7 @@ class NetworkRoutingSolver:
         self.lengths = priQueue.priorities
 
     def dijkstrasArray(self, srcIndex):
-        priQueue = queueUnsortedArray2(srcIndex)
+        priQueue = queueUnsortedArray(srcIndex)
         priQueue.createQueue(self.network)
         self.prev = []
         self.lengths = {}
@@ -101,7 +99,7 @@ class NetworkRoutingSolver:
                             priQueue.currentMin = V.dest
                         self.lengths[V.dest] = newLength
 
-class queueUnsortedArray2:
+class queueUnsortedArray:
         def __init__( self,srcIndex):
             self.start = srcIndex
             self.queue = {}
