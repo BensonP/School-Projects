@@ -171,6 +171,7 @@ def homogenize(x,y,z):
 	return np.matrix([[x],[y],[z],[1]])
 
 def getCameraMatrix(x,y,z,theta):
+	return np.matmul(getRotationMatrix(theta), getTransformationMatrix(x,y,z))
 	return np.matrix([[np.cos(np.radians(theta)), 0, np.sin(np.radians(theta)),x], 
       				[0,1,0,y], 
       				[-np.sin(np.radians(theta)), 0,np.cos(np.radians(theta)),z],
@@ -199,9 +200,46 @@ def getClipMatrix():
       				[0,0,(f+n)/(f-n), (-2*n*f)/(f-n)],
       				[0,0,1,0]])
 
-def clipTests(start, end):
-	pass
+def clipTests(start, end, start_w, end_w):
+	start_x = start[0,0]
+	start_y = start[1,0]
+	start_z = start[2,0]
+	end_x = end[0,0]
+	end_y = end[1,0]
+	end_z = end[2,0]
 
+	if start_z < -start_w or end_z < -end_w:
+		return True
+	if start_x < -start_w and end_x < -end_w:
+		return True
+	if start_x > start_w and end_x > end_w:
+		return True
+	if start_y < -start_w and end_y < -end_w :
+		return True
+	if start_y > start_w and end_y > end_w:
+		return True
+	if start_z > start_w and end_z > end_w:
+		return True
+	
+	return False
+
+def getTransformationMatrix(x,y,z):
+	return np.matrix([[1,0,0,x], 
+							[0,1,0,y], 
+							[0,0,1,z],
+							[0,0,0,1]])
+
+def getRotationMatrix(angle):
+	return np.matrix([[np.cos(np.radians(angle)), 0, np.sin(np.radians(angle)),0], 
+      [0,1,0,0], 
+      [-np.sin(np.radians(angle)), 0,np.cos(np.radians(angle)),0],
+      [0,0,0,1]])
+
+def getScaleMatrix(x,y,z):
+	return np.matrix([[x,0,0,0], 
+							[0,y,0,0], 
+							[0,0,z,0],
+							[0,0,0,1]])
 	
 # Initialize the game engine
 pygame.init()
@@ -224,13 +262,13 @@ done = False
 clock = pygame.time.Clock()
 start = Point(0.0,0.0)
 end = Point(0.0,0.0)
-linelist = loadHouse()
 camera_x = 0
 camera_y = 0
 camera_z = 0
-ANGLE = 0
+angle = 0
 width = size[0]
-height = size[1] 
+height = size[1]
+pushed_matrix = None
 
 fov = 90
 zoom_x = 1/np.tan(np.radians(fov/2))
@@ -259,52 +297,89 @@ while not done:
 
 	if pressed[pygame.K_a]:
 		print("a is pressed")
-		camera_z += np.sin(np.radians(ANGLE))
-		camera_x += np.cos(np.radians(ANGLE))
+		camera_z += np.sin(np.radians(angle))
+		camera_x += np.cos(np.radians(angle))
 
 	if pressed[pygame.K_d]:
 		print("d is pressed")
-		camera_z -= np.sin(np.radians(ANGLE))
-		camera_x -= np.cos(np.radians(ANGLE))
+		camera_z -= np.sin(np.radians(angle))
+		camera_x -= np.cos(np.radians(angle))
 		
 	if pressed[pygame.K_w]:
-		camera_z += np.sin(np.radians(ANGLE + 90))
-		camera_x += np.cos(np.radians(ANGLE + 90))
+		camera_z -= np.sin(np.radians(angle + 90))
+		camera_x -= np.cos(np.radians(angle + 90))
 		print("w is pressed")
 
 	if pressed[pygame.K_s]:
-		camera_z -= np.sin(np.radians(ANGLE + 90))
-		camera_x -= np.cos(np.radians(ANGLE + 90))
+		camera_z += np.sin(np.radians(angle + 90))
+		camera_x += np.cos(np.radians(angle + 90))
 		print("s is pressed")
+
+	if pressed[pygame.K_r]:
+		camera_y -= 1
+		print("r is pressed")
+
+	if pressed[pygame.K_f]:
+		camera_y += 1
+		print("f is pressed")
+
+	if pressed[pygame.K_e]:
+		angle +=1
+		camera_matrix = np.matmul(getTransformationMatrix(-camera_x, -camera_y, -camera_z), camera_matrix)
+		print("e is pressed")
+
+	if pressed[pygame.K_q]:
+		angle -=1
+		print("q is pressed")
 	
-	camera_matrix = getCameraMatrix(camera_x,camera_y,camera_z,ANGLE)
+	camera_matrix = getCameraMatrix(camera_x,camera_y,camera_z,angle)
 
 	#Viewer Code#
 	#####################################################################
+	def drawObject(linelist):
+		for s in linelist:
+			start_vector = homogenize(s.start.x, s.start.y, s.start.z)
+			end_vector = homogenize(s.end.x, s.end.y, s.end.z)
 
-	for s in linelist:
-		start_vector = homogenize(s.start.x, s.start.y, s.start.z)
-		end_vector = homogenize(s.end.x, s.end.y, s.end.z)
+			start_Transformation_Matrix = np.matmul(camera_matrix, start_vector)
+			end_Transformation_Matrix = np.matmul(camera_matrix, end_vector)
 
-		start_Transformation_Matrix = np.matmul(camera_matrix, start_vector)
-		end_Transformation_Matrix = np.matmul(camera_matrix, end_vector)
+			clip_matrix = getClipMatrix()
+			#BOGUS DRAWING PARAMETERS SO YOU CAN SEE THE HOUSE WHEN YOU START UP
+			start_Transformation_Matrix = np.matmul(clip_matrix, start_Transformation_Matrix)
+			end_Transformation_Matrix = np.matmul(clip_matrix, end_Transformation_Matrix)
 
-		clip_matrix = getClipMatrix()
-		#BOGUS DRAWING PARAMETERS SO YOU CAN SEE THE HOUSE WHEN YOU START UP
-		start_Transformation_Matrix = np.matmul(clip_matrix, start_Transformation_Matrix)
-		end_Transformation_Matrix = np.matmul(clip_matrix, end_Transformation_Matrix)
+			start_w = start_Transformation_Matrix[3,0]
+			end_w = end_Transformation_Matrix[3,0]
+			clip = False
+			clip = clipTests(start_Transformation_Matrix,end_Transformation_Matrix, start_w, end_w)
+			if not clip:
+				start_Transformation_Matrix = deviceNormalize(start_Transformation_Matrix,start_w)
+				end_Transformation_Matrix = deviceNormalize(end_Transformation_Matrix,end_w)
 
-		start_w = start_Transformation_Matrix[3,0]
-		end_w = end_Transformation_Matrix[3,0]
-		clip = False
-		clipTests(start_w,end_w)
+				start_Point = getPoint(start_Transformation_Matrix)
+				end_Point = getPoint(end_Transformation_Matrix)
+				pygame.draw.line(screen, BLUE, (start_Point.x, start_Point.y), (end_Point.x, end_Point.y))
 
-		start_Transformation_Matrix = deviceNormalize(start_Transformation_Matrix,start_w)
-		end_Transformation_Matrix = deviceNormalize(end_Transformation_Matrix,end_w)
+	def drawStreet():
+		for i in range(5):
+			global camera_matrix
+			if i != 0:
+				transformation_matrix = np.matrix([[1,0,0,20], 
+							[0,1,0,0], 
+							[0,0,1,0],
+							[0,0,0,1]])
+				camera_matrix = np.matmul(camera_matrix, transformation_matrix)
+			drawObject(loadHouse())
 
-		start_Point = getPoint(start_Transformation_Matrix)
-		end_Point = getPoint(end_Transformation_Matrix)
-		pygame.draw.line(screen, BLUE, (start_Point.x, start_Point.y), (end_Point.x, end_Point.y))
+	pushed_matrix = np.copy(camera_matrix)
+	drawStreet()
+	#camera_matrix = np.copy(pushed_matrix)
+	#camera_matrix = np.matmul(getScaleMatrix(1,1,-1),camera_matrix)
+	camera_matrix = np.matmul(getTransformationMatrix(0,0,50),camera_matrix)
+	#camera_matrix = np.copy(pushed_matrix)
+	drawStreet()
+
 
 	# Go ahead and update the screen with what we've drawn.
 	# This MUST happen after all the other drawing commands.
