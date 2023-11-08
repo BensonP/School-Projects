@@ -32,19 +32,16 @@ class GeneSequencing:
 		return (self.table[(x-1, y)][0] + 5,(x-1,y))
 	
 	def getDiagonal(self,x,y,seq1,seq2):
-		if seq1[x] == seq2[y]:
+		if seq1[x-1] == seq2[y-1]:
 			return (self.table[(x-1,y-1)][0] - 3,(x-1,y-1))
 		else: return(self.table[(x-1,y-1)][0] + 1,(x-1,y-1))
 
 	
 	def loadBaseCases(self,seq1,seq2):
-		if seq1[0] == seq2[0]:
-			self.table[(0,0)] = -3,None
-		else:
-			self.table[(0,0)] = 1,None
-		for j in range(1,len(seq1)) :
+		self.table[(0,0)] = 0,None
+		for j in range(1,len(seq1)+1) :
 			self.table[(j,0)] = 5*j + self.table[0,0][0],None
-		for i in range(1,len(seq2)):
+		for i in range(1,len(seq2)+1):
 			self.table[(0,i)] = 5*i + self.table[0,0][0],None
 
 	def getLowestScore(self,x,y,seq1,seq2):
@@ -61,6 +58,27 @@ class GeneSequencing:
 			lowestScore = diagonal
 		return lowestScore
 	
+	def getAlignmentStrings(self,x,y,seq1,seq2):
+		seq1 = list(seq1)
+		seq2 = list(seq2)
+		s1 = ""
+		s2 = ""
+		while x != 0 and y != 0:
+			if self.table[x,y][1] == (x,y-1): #going left
+				s1 = s1 + seq1.pop()
+				s2 = s2 + '-'
+				y = y-1
+			elif self.table[x,y][1] == (x-1,y): #going top
+				s1 = s1 + '-'
+				s2 = s2 + seq2.pop()
+				x = x-1
+			elif self.table[x,y][1] == (x-1, y-1): #going diagonal
+				s1 = s1 + seq1.pop()
+				s2 = s2 + seq2.pop()
+				x = x-1
+				y = y-1
+		return s1, s2
+	
 
 # This is the method called by the GUI.  _seq1_ and _seq2_ are two sequences to be aligned, _banded_ is a boolean that tells
 # you whether you should compute a banded alignment or full alignment, and _align_length_ tells you
@@ -71,20 +89,26 @@ class GeneSequencing:
 		self.MaxCharactersToAlign = align_length
 		self.table = {}
 		self.loadBaseCases(seq1, seq2)
+		if len(seq1)>align_length:
+			seq1 = seq1[:align_length]
+		if len(seq2)>align_length:
+			seq2 = seq2[:align_length]
 
-		for x in range(1,len(seq1)) :
-			for y in range(1,len(seq2)):
+		for x in range(1,len(seq1) + 1) :
+			for y in range(1,len(seq2) + 1):
 				self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2)
 		
-		print(self.table)
+		#print(self.table)
 
 ###################################################################################################
 # your code should replace these three statements and populate the three variables: score, alignment1 and alignment2
-		score = random.random()*100;
-		alignment1 = 'abc-easy  DEBUG:({} chars,align_len={}{})'.format(
-			len(seq1), align_length, ',BANDED' if banded else '')
-		alignment2 = 'as-123--  DEBUG:({} chars,align_len={}{})'.format(
-			len(seq2), align_length, ',BANDED' if banded else '')
+		score = self.table[len(seq1), len(seq2)][0]
+		alignment1,alignment2 = self.getAlignmentStrings(x,y,seq1,seq2)
+		#alignment1 = 'abc-easy  DEBUG:({} chars,align_len={}{})'.format(
+		#	len(seq1), align_length, ',BANDED' if banded else '')
+		#alignment2 = 'as-123--  DEBUG:({} chars,align_len={}{})'.format(
+		#	len(seq2), align_length, ',BANDED' if banded else '')
+		
 ###################################################################################################
 
 		return {'align_cost':score, 'seqi_first100':alignment1, 'seqj_first100':alignment2}
