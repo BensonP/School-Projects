@@ -164,7 +164,7 @@ def loadTire():
 	tire.append(Line3D(Point3D(-.5, -1, .5), Point3D(-.5, -1, -.5)))
 	tire.append(Line3D(Point3D(-1, -.5, .5), Point3D(-1, -.5, -.5)))
 	
-	return 
+	return tire
 
 #helpful matrixes
 def homogenize(x,y,z):
@@ -172,10 +172,6 @@ def homogenize(x,y,z):
 
 def getCameraMatrix(x,y,z,theta):
 	return np.matmul(getRotationMatrix(theta), getTransformationMatrix(x,y,z))
-	return np.matrix([[np.cos(np.radians(theta)), 0, np.sin(np.radians(theta)),x], 
-      				[0,1,0,y], 
-      				[-np.sin(np.radians(theta)), 0,np.cos(np.radians(theta)),z],
-      				[0,0,0,1]])
 
 def deviceNormalize(m,w):
 	n = m/w
@@ -324,19 +320,18 @@ while not done:
 		print("f is pressed")
 
 	if pressed[pygame.K_e]:
-		angle +=1
-		camera_matrix = np.matmul(getTransformationMatrix(-camera_x, -camera_y, -camera_z), camera_matrix)
+		angle -=1
 		print("e is pressed")
 
 	if pressed[pygame.K_q]:
-		angle -=1
+		angle +=1
 		print("q is pressed")
 	
 	camera_matrix = getCameraMatrix(camera_x,camera_y,camera_z,angle)
 
 	#Viewer Code#
 	#####################################################################
-	def drawObject(linelist):
+	def drawObject(linelist,color):
 		for s in linelist:
 			start_vector = homogenize(s.start.x, s.start.y, s.start.z)
 			end_vector = homogenize(s.end.x, s.end.y, s.end.z)
@@ -359,7 +354,7 @@ while not done:
 
 				start_Point = getPoint(start_Transformation_Matrix)
 				end_Point = getPoint(end_Transformation_Matrix)
-				pygame.draw.line(screen, BLUE, (start_Point.x, start_Point.y), (end_Point.x, end_Point.y))
+				pygame.draw.line(screen, color, (start_Point.x, start_Point.y), (end_Point.x, end_Point.y))
 
 	def drawStreet():
 		for i in range(5):
@@ -370,15 +365,45 @@ while not done:
 							[0,0,1,0],
 							[0,0,0,1]])
 				camera_matrix = np.matmul(camera_matrix, transformation_matrix)
-			drawObject(loadHouse())
+			drawObject(loadHouse(),BLUE)
+
+	def drawCar():
+		global camera_matrix
+		camera_matrix = np.matmul(camera_matrix, getTransformationMatrix(0,0,20))
+		drawObject(loadCar(),RED)
+		for i in range(4):
+			pushed_matrix = np.copy(camera_matrix)
+			drawMovingWheels(i)
+			camera_matrix = np.copy(pushed_matrix)
+
+	def drawMovingWheels(i):
+		global camera_matrix
+		if i == 0:
+			camera_matrix = np.matmul(camera_matrix, getTransformationMatrix(-2, 0, -1.5))
+		if i == 1:
+			camera_matrix = np.matmul(camera_matrix, getTransformationMatrix(-2, 0, 1.5))
+		if i == 2:
+			camera_matrix = np.matmul(camera_matrix, getTransformationMatrix(2,0,-1.5))
+		if i == 3:
+			camera_matrix = np.matmul(camera_matrix, getTransformationMatrix(2,0,1.5))
+		drawObject(loadTire(),GREEN)
+
 
 	pushed_matrix = np.copy(camera_matrix)
+	camera_matrix = np.matmul(camera_matrix, getTransformationMatrix(0,0,50))
+	camera_matrix = np.matmul(camera_matrix, getScaleMatrix(1,1,-1))
 	drawStreet()
-	#camera_matrix = np.copy(pushed_matrix)
-	#camera_matrix = np.matmul(getScaleMatrix(1,1,-1),camera_matrix)
-	camera_matrix = np.matmul(getTransformationMatrix(0,0,50),camera_matrix)
+	camera_matrix = np.copy(pushed_matrix)
+	pushed_matrix = np.copy(camera_matrix)
 	#camera_matrix = np.copy(pushed_matrix)
 	drawStreet()
+	camera_matrix = np.copy(pushed_matrix)
+	transfomration_matrix = np.matmul(getTransformationMatrix(100,0,25), getRotationMatrix(270))
+	camera_matrix = np.matmul(camera_matrix, transfomration_matrix)
+	drawObject(loadHouse(),BLUE)
+	camera_matrix = np.copy(pushed_matrix)
+	drawCar()
+	
 
 
 	# Go ahead and update the screen with what we've drawn.

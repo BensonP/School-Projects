@@ -25,6 +25,43 @@ class GeneSequencing:
 	def __init__( self ):
 		pass
 
+	def getLeft(self,x,y):
+		return (self.table[(x,y-1)][0] + 5,(x,y-1))
+	
+	def getTop(self,x,y):
+		return (self.table[(x-1, y)][0] + 5,(x-1,y))
+	
+	def getDiagonal(self,x,y,seq1,seq2):
+		if seq1[x] == seq2[y]:
+			return (self.table[(x-1,y-1)][0] - 3,(x-1,y-1))
+		else: return(self.table[(x-1,y-1)][0] + 1,(x-1,y-1))
+
+	
+	def loadBaseCases(self,seq1,seq2):
+		if seq1[0] == seq2[0]:
+			self.table[(0,0)] = -3,None
+		else:
+			self.table[(0,0)] = 1,None
+		for j in range(1,len(seq1)) :
+			self.table[(j,0)] = 5*j + self.table[0,0][0],None
+		for i in range(1,len(seq2)):
+			self.table[(0,i)] = 5*i + self.table[0,0][0],None
+
+	def getLowestScore(self,x,y,seq1,seq2):
+		left = self.getLeft(x,y)
+		top = self.getTop(x,y)
+		diagonal = self.getDiagonal(x,y,seq1,seq2)
+
+		lowestScore = (float('inf'),None)
+		if left[0] < lowestScore[0]:
+			lowestScore = left
+		if top[0] < lowestScore[0]:
+			lowestScore = top
+		if diagonal[0] < lowestScore[0]:
+			lowestScore = diagonal
+		return lowestScore
+	
+
 # This is the method called by the GUI.  _seq1_ and _seq2_ are two sequences to be aligned, _banded_ is a boolean that tells
 # you whether you should compute a banded alignment or full alignment, and _align_length_ tells you
 # how many base pairs to use in computing the alignment
@@ -32,6 +69,14 @@ class GeneSequencing:
 	def align( self, seq1, seq2, banded, align_length):
 		self.banded = banded
 		self.MaxCharactersToAlign = align_length
+		self.table = {}
+		self.loadBaseCases(seq1, seq2)
+
+		for x in range(1,len(seq1)) :
+			for y in range(1,len(seq2)):
+				self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2)
+		
+		print(self.table)
 
 ###################################################################################################
 # your code should replace these three statements and populate the three variables: score, alignment1 and alignment2
