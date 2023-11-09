@@ -89,10 +89,6 @@ class GeneSequencing:
 		self.MaxCharactersToAlign = align_length
 		self.table = {}
 		self.loadBaseCases(seq1, seq2)
-		if len(seq1)>align_length:
-			seq1 = seq1[:align_length]
-		if len(seq2)>align_length:
-			seq2 = seq2[:align_length]
 
 		for x in range(1,len(seq1) + 1) :
 			for y in range(1,len(seq2) + 1):
