@@ -59,22 +59,23 @@ class GeneSequencing:
 		return lowestScore
 	
 	def getAlignmentStrings(self,x,y,seq1,seq2):
+		seqTmp = seq1
 		seq1 = list(seq1)
 		seq2 = list(seq2)
 		s1 = ""
 		s2 = ""
 		while x != 0 and y != 0:
 			if self.table[x,y][1] == (x,y-1): #going left
-				s1 = s1 + seq1.pop()
-				s2 = s2 + '-'
+				s2 = seq2.pop() + s2
+				s1 = '-'  + s1
 				y = y-1
 			elif self.table[x,y][1] == (x-1,y): #going top
-				s1 = s1 + '-'
-				s2 = s2 + seq2.pop()
+				s2 = '-' + s2
+				s1 = seq1.pop() + s1
 				x = x-1
 			elif self.table[x,y][1] == (x-1, y-1): #going diagonal
-				s1 = s1 + seq1.pop()
-				s2 = s2 + seq2.pop()
+				s1 = seq1.pop() + s1
+				s2 = seq2.pop() + s2
 				x = x-1
 				y = y-1
 		return s1, s2
@@ -89,6 +90,10 @@ class GeneSequencing:
 		self.MaxCharactersToAlign = align_length
 		self.table = {}
 		self.loadBaseCases(seq1, seq2)
+		if len(seq1)>align_length:
+			seq1 = seq1[:align_length]
+		if len(seq2)>align_length:
+			seq2 = seq2[:align_length]
 
 		for x in range(1,len(seq1) + 1) :
 			for y in range(1,len(seq2) + 1):
@@ -107,4 +112,4 @@ class GeneSequencing:
 		
 ###################################################################################################
 
-		return {'align_cost':score, 'seqi_first100':alignment1, 'seqj_first100':alignment2}
+		return {'align_cost':score, 'seqi_first100':alignment1[:100], 'seqj_first100':alignment2[:100]}
