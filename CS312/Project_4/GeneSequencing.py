@@ -25,26 +25,39 @@ class GeneSequencing:
 	def __init__( self ):
 		pass
 
-	def getLeft(self,x,y):
-		return (self.table[(x,y-1)][0] + 5,(x,y-1))
+	def getLeft(self,x,y):  #returns the left neighbor value plus the cost for inserting.
+		if self.banded:
+			if self.distFromDiagonal == -MAXINDELS: #returns infinity if the neighbor does not exist.
+				return float('inf'), None
+		return (self.table[(x,y-1)][0] + INDEL,(x,y-1))
 	
-	def getTop(self,x,y):
-		return (self.table[(x-1, y)][0] + 5,(x-1,y))
 	
-	def getDiagonal(self,x,y,seq1,seq2):
+	def getTop(self,x,y): #returns the top neighbor value plus cost for deleting.
+		if self.banded:
+			if self.distFromDiagonal == MAXINDELS: #Returns infinity in the neighbor does not exist for banded. 
+				return float('inf'), None
+		return (self.table[(x-1, y)][0] + INDEL,(x-1,y))
+	
+	def getDiagonal(self,x,y,seq1,seq2): #returns diaganal neighbor plus the cost of diagonal. Diagonal neighbor will always exist.
 		if seq1[x-1] == seq2[y-1]:
-			return (self.table[(x-1,y-1)][0] - 3,(x-1,y-1))
-		else: return(self.table[(x-1,y-1)][0] + 1,(x-1,y-1))
+			return (self.table[(x-1,y-1)][0] + MATCH,(x-1,y-1))
+		else: return(self.table[(x-1,y-1)][0] + SUB,(x-1,y-1))
 
 	
-	def loadBaseCases(self,seq1,seq2):
-		self.table[(0,0)] = 0,None
-		for j in range(1,len(seq1)+1) :
-			self.table[(j,0)] = 5*j + self.table[0,0][0],None
-		for i in range(1,len(seq2)+1):
-			self.table[(0,i)] = 5*i + self.table[0,0][0],None
+	def loadBaseCases(self,seq1,seq2): #Load bases. If banded, only loads bases on first row and column of K + 1 (band length + 1)
+		self.table[(0,0)] = 0,None   #O(i + j) speed for unbanded, O(2K + 1) speed for banded
+		if self.banded:				 #O(i + j) space for unbanded, O(2k + 1) space for banded
+			for j in range(1, MAXINDELS+1):
+				self.table[(j,0)] = 5*j,(j-1,0)
+			for i in range(1, MAXINDELS+1):
+				self.table[(0,i)] = 5*i,(0,i-1)
+		else:
+			for j in range(1,len(seq1)+1):
+				self.table[(j,0)] = 5*j,None
+			for i in range(1,len(seq2)+1):
+				self.table[(0,i)] = 5*i,None
 
-	def getLowestScore(self,x,y,seq1,seq2):
+	def getLowestScore(self,x,y,seq1,seq2): #recieves all neighbors and compares the lowest cost to put in current box and returns it.
 		left = self.getLeft(x,y)
 		top = self.getTop(x,y)
 		diagonal = self.getDiagonal(x,y,seq1,seq2)
@@ -58,58 +71,62 @@ class GeneSequencing:
 			lowestScore = diagonal
 		return lowestScore
 	
-	def getAlignmentStrings(self,x,y,seq1,seq2):
-		seqTmp = seq1
-		seq1 = list(seq1)
-		seq2 = list(seq2)
+	def getAlignmentStrings(self,x,y,seq1,seq2): #back tracks and returns aligned strings. O(i + j) for time and space for both banded and unbanded. 
+
 		s1 = ""
 		s2 = ""
 		while x != 0 and y != 0:
 			if self.table[x,y][1] == (x,y-1): #going left
-				s2 = seq2.pop() + s2
+				s2 = seq2[-1] + s2
+				seq2 = seq2[:-1]
 				s1 = '-'  + s1
 				y = y-1
 			elif self.table[x,y][1] == (x-1,y): #going top
 				s2 = '-' + s2
-				s1 = seq1.pop() + s1
+				s1 = seq1[-1] + s1
+				seq1 = seq1[:-1]
 				x = x-1
 			elif self.table[x,y][1] == (x-1, y-1): #going diagonal
-				s1 = seq1.pop() + s1
-				s2 = seq2.pop() + s2
+				s1 = seq1[-1] + s1
+				s2 = seq2[-1] + s2
 				x = x-1
 				y = y-1
+				seq1 = seq1[:-1]
+				seq2 = seq2[:-1]
 		return s1, s2
 	
 
-# This is the method called by the GUI.  _seq1_ and _seq2_ are two sequences to be aligned, _banded_ is a boolean that tells
-# you whether you should compute a banded alignment or full alignment, and _align_length_ tells you
-# how many base pairs to use in computing the alignment
-
-	def align( self, seq1, seq2, banded, align_length):
+	def align( self, seq1, seq2, banded, align_length): #O(ij) speed and space for unbanded, O(kn) speed and space for banded
 		self.banded = banded
 		self.MaxCharactersToAlign = align_length
 		self.table = {}
-		self.loadBaseCases(seq1, seq2)
+		self.loadBaseCases(seq1, seq2) #O(i + j) for unbanded, O(2k + 1) for banded
 		if len(seq1)>align_length:
 			seq1 = seq1[:align_length]
 		if len(seq2)>align_length:
 			seq2 = seq2[:align_length]
 
-		for x in range(1,len(seq1) + 1) :
-			for y in range(1,len(seq2) + 1):
-				self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2)
+		for x in range(1,len(seq1) + 1) : #iterates through each row
+			if banded: # if banded, only iterates through -k through k, or 2k + 1 at max. 
+				min = x - MAXINDELS
+				if min < 1:
+					min = 1
+				max = x + MAXINDELS
+				if max > len(seq2):
+					max = len(seq2)
+				for y in range(min, max + 1):
+					self.distFromDiagonal = y-x
+					self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2) 
+			else: #iterate through each column when unbanded.
+				for y in range(1,len(seq2) + 1):
+					self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2)
 		
-		#print(self.table)
+		if self.table.get((len(seq1),len(seq2))) == None:
+			score = float('inf')
+			alignment1,alignment2 = "No Alignment Possible","No Alignment Possible"
 
-###################################################################################################
-# your code should replace these three statements and populate the three variables: score, alignment1 and alignment2
-		score = self.table[len(seq1), len(seq2)][0]
-		alignment1,alignment2 = self.getAlignmentStrings(x,y,seq1,seq2)
-		#alignment1 = 'abc-easy  DEBUG:({} chars,align_len={}{})'.format(
-		#	len(seq1), align_length, ',BANDED' if banded else '')
-		#alignment2 = 'as-123--  DEBUG:({} chars,align_len={}{})'.format(
-		#	len(seq2), align_length, ',BANDED' if banded else '')
-		
-###################################################################################################
+		else:
+			score = self.table[len(seq1), len(seq2)][0]
+			alignment1,alignment2 = self.getAlignmentStrings(x,y,seq1,seq2) #O(i + j) on average, best would be O(i) if it was all diagonal. 
 
 		return {'align_cost':score, 'seqi_first100':alignment1[:100], 'seqj_first100':alignment2[:100]}
