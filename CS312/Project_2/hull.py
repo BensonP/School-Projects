@@ -1,27 +1,27 @@
 from convex_hull import *
 from Proj2GUI import *
 
-class Node(): #Node class to store my points, and to mantain a CW and CCW positions. 
+class Node():
     def __init__(self, point):
         self.point = point
         self.CW = self
         self.CCW = self
 
-class Hull(): #Hull to store the nodes, and keep track of LM and RM nodes. 
-    def __init__(self, LM, RM): 
+class Hull():
+    def __init__(self, LM, RM): ##left node and right node as init
         self.LM = LM
         self.RM = RM
 
     
-def getSlope(point1, point2): #to get my slop. O(1) time and space
+def getSlope(point1, point2):
+    
     rise = point2.y() - point1.y()
     rise = float(rise)
     run = point2.x() - point1.x()
     return rise/run
 
-def solveHull(points): #is total O(nlog(n)), log(n) due to recursing half of the hull each time, and n due to the combine function
-                        # worse case is O(n), due to potentially having to create a node at the base case for each point.
-    if len(points) == 1: #where space is required and used for node creation. 
+def solveHull(points):
+    if len(points) == 1:
         node = Node(points[0])
         hull = Hull(node, node)
         return hull
@@ -29,10 +29,10 @@ def solveHull(points): #is total O(nlog(n)), log(n) due to recursing half of the
     leftHull = solveHull(points[:len(points)//2])
     rightHull = solveHull(points[len(points)//2:len(points)])
 
-    hull = combine(leftHull, rightHull) #is O(n) time
+    hull = combine(leftHull, rightHull)
     return hull
 
-def combine(leftHull, rightHull): #O(n) time, due to the worst case complexity being having to visit every Node within getUpperTangent/getLowerTangent
+def combine(leftHull, rightHull): ##make call to creat upper and lower tangeants, then rewire my hull. 
     rightNode = leftHull.RM
     leftNode = rightHull.LM
     upperTangeant = getUpperTangeant(leftNode, rightNode)
@@ -43,23 +43,24 @@ def combine(leftHull, rightHull): #O(n) time, due to the worst case complexity b
     lowerTangeant[1].CW = lowerTangeant[0]
 
     leftHull.RM = rightHull.RM
-    return leftHull
+    hull = leftHull
+    return hull
 
 
-def getUpperTangeant(leftNode, rightNode): #o(n), due to having to look at each node, in the worst case of a hull. 
+def getUpperTangeant(leftNode, rightNode):
     done = 0
-    while not done: #this while loop could look at each node to compare and find the tangeant lines. 
+    while not done:
         newLeftNode = compareLeftCCW(leftNode, rightNode)
         newRightNode = compareRightCW(newLeftNode, rightNode)
-        if newLeftNode == leftNode and newRightNode == rightNode: 
+        if newLeftNode == leftNode and newRightNode == rightNode:
             done = 1
         leftNode = newLeftNode
         rightNode = newRightNode
     return (newLeftNode, newRightNode)
 
-def getLowerTangeant(leftNode, rightNode):  #o(n), due to having to look at each node, in the worst case of a hull. 
+def getLowerTangeant(leftNode, rightNode):
     done = 0
-    while not done: #this while loop could look at each node to compare and find the tangeant lines. 
+    while not done:
         newLeftNode = compareLeftCW(leftNode, rightNode)
         newRightNode = compareRightCCW(newLeftNode, rightNode)
         if newLeftNode == leftNode and newRightNode == rightNode:
@@ -69,7 +70,7 @@ def getLowerTangeant(leftNode, rightNode):  #o(n), due to having to look at each
     return (newLeftNode, newRightNode)
 
 
-def compareLeftCW(leftNode, rightNode): #following functions are all o(1)
+def compareLeftCW(leftNode, rightNode):
     slope = getSlope(leftNode.point, rightNode.point)
     if(rightNode.point != leftNode.CW.point):
         slope2 = getSlope(leftNode.CW.point, rightNode.point)
@@ -101,7 +102,7 @@ def compareRightCW(leftNode, rightNode):
             return rightNode.CW
         return rightNode
     
-def getPoints(hull): #this is O(n) due to having to iterate over every node in the hull. 
+def getPoints(hull):
     points = []
     firstNode = hull.LM
     tempNode = hull.LM
@@ -113,7 +114,7 @@ def getPoints(hull): #this is O(n) due to having to iterate over every node in t
             done = 1
     return points
 
-def getPolygon(points): #also just O(n) to visit every item in the list
+def getPolygon(points):
     polygon = [QLineF(points[i],points[i+1]) for i in range(len(points)-1)]
     lastLine = QLineF(points[-1],points[0])
     polygon.append(lastLine)
