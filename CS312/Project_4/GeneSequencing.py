@@ -52,9 +52,9 @@ class GeneSequencing:
 				self.table[(0,i)] = 5*i,(0,i-1)
 		else:
 			for j in range(1,len(seq1)+1):
-				self.table[(j,0)] = 5*j,None
+				self.table[(j,0)] = 5*j,(j-1,0)
 			for i in range(1,len(seq2)+1):
-				self.table[(0,i)] = 5*i,None
+				self.table[(0,i)] = 5*i,(0,i-1)
 
 	def getLowestScore(self,x,y,seq1,seq2): #recieves all neighbors and compares the lowest cost to put in current box and returns it.
 		left = self.getLeft(x,y)
@@ -78,7 +78,8 @@ class GeneSequencing:
 
 		s1 = ""
 		s2 = ""
-		while x != 0 and y != 0:
+		
+		while x != 0 or y != 0:
 			if self.table[x,y][1] == (x,y-1): #going left
 				s2 = seq2[-1] + s2
 				seq2 = seq2[:-1]
