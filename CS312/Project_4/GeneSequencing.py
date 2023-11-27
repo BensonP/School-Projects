@@ -21,7 +21,6 @@ INDEL = 5
 SUB = 1
 
 class GeneSequencing:
-
 	def __init__( self ):
 		pass
 
@@ -61,6 +60,10 @@ class GeneSequencing:
 		left = self.getLeft(x,y)
 		top = self.getTop(x,y)
 		diagonal = self.getDiagonal(x,y,seq1,seq2)
+
+		return min(left,top,diagonal, key=lambda x:x[0])
+
+		lowestScore = min(left[0],top[0],diagonal[0])
 
 		lowestScore = (float('inf'),None)
 		if left[0] < lowestScore[0]:
@@ -108,18 +111,19 @@ class GeneSequencing:
 
 		for x in range(1,len(seq1) + 1) : #iterates through each row
 			if banded: # if banded, only iterates through -k through k, or 2k + 1 at max. 
-				min = x - MAXINDELS
-				if min < 1:
-					min = 1
+				bandedMin = x - MAXINDELS
+				if bandedMin < 1:
+					bandedMin = 1
 				max = x + MAXINDELS
 				if max > len(seq2):
 					max = len(seq2)
-				for y in range(min, max + 1):
+				for y in range(bandedMin, max + 1):
 					self.distFromDiagonal = y-x
 					self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2) 
 			else: #iterate through each column when unbanded.
 				for y in range(1,len(seq2) + 1):
-					self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2)
+					self.table[(x,y)] = min(self.getLeft(x,y),self.getTop(x,y),self.getDiagonal(x,y,seq1,seq2), key = lambda x:x[0])
+					#self.table[(x,y)] = self.getLowestScore(x,y,seq1,seq2)
 		
 		if self.table.get((len(seq1),len(seq2))) == None:
 			score = float('inf')
@@ -127,6 +131,6 @@ class GeneSequencing:
 
 		else:
 			score = self.table[len(seq1), len(seq2)][0]
-			alignment1,alignment2 = self.getAlignmentStrings(x,y,seq1,seq2) #O(i + j) on average, best would be O(i) if it was all diagonal. 
+			#alignment1,alignment2 = self.getAlignmentStrings(x,y,seq1,seq2) #O(i + j) on average, best would be O(i) if it was all diagonal. 
 
-		return {'align_cost':score, 'seqi_first100':alignment1[:100], 'seqj_first100':alignment2[:100]}
+		return {'align_cost':score, 'seqi_first100':'hi', 'seqj_first100':'hi'}
