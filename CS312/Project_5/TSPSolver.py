@@ -16,14 +16,65 @@ import numpy as np
 from TSPClasses import *
 import heapq
 import itertools
+import random
+import copy
 
 class state:
-	def __init__(self,size):
-		self.state = np.array[size][size]
-		self.score = 0
+	def __init__(self,size,cities):
+		self.array = np.zeros((size,size))
+		self.cost = 0
+		self.rowBit = np.full(size,1)
+		self.columnBit = np.copy(self.rowBit)
+		self.fillMatrix(cities, size)
 
-def findLowestNextNode(array,i):
-	pass
+	def fillMatrix(self, cities, size):
+		for i in range(size):
+			for j in range(size):
+				self.array[i,j] = cities[i].costTo(cities[j])
+		print(self.array)
+		lowest = findLowestNextCity(self.array,0)
+		print(lowest)
+		self = rowReduceMatrix(self)
+		print(self.array)
+		print(self.cost)
+		self = columnReduceMatrix(self)
+		print(self.array)
+		print(self.cost)
+
+	def setBitMaps(self,row,column):
+		self.array[column,row] = float('inf')
+		self.rowBit[row] = 0
+		self.columnBit[column] = 0
+
+def findLowestNextCity(array,i): #Returns a tuple (cost to that city, and next city index)
+	lowest = (float('inf'),None)
+	for j in range(array.shape[0]):
+		if array[i,j] < lowest[0]:
+			lowest = (array[i,j],j)
+	return lowest
+
+def rowReduceMatrix(state):
+	for i in range(state.array.shape[0]):
+		if state.rowBit[i] != 0:
+			lowest = findLowestNextCity(state.array,i)
+			state.array[i][:] -= lowest[0]
+			state.cost += lowest[0]
+	return state
+
+def columnReduceMatrix(state):
+	for j in range(state.array.shape[1]):
+		if state.columnBit[j] != 0:
+			lowest = np.min(state.array[:,j])
+			state.array[:,j] -= lowest
+			state.cost += lowest
+	return state
+
+def setRowAndColumns(array,i,j):
+	array[j,i] = float('inf')
+	array[i,:] = float('inf')
+	array[:,j] = float('inf')
+	return array
+
 	
 
 
@@ -92,12 +143,43 @@ class TSPSolver:
 	'''
 
 	def greedy( self,time_allowance=60.0 ):
+		cities = self._scenario.getCities()
+		ncities = len(cities)
+		foundTour = False
+		count = 0
+		bssf = float('inf')
 		found = False
-		while not found:
-			None
+		time_spent = 0
+		start_time = time.time()
 
+		startState = state(ncities,cities)
+		current = 0
+		start = 0
+		while time.time()-start_time < time_allowance and start < ncities:
+			current = start
+			greedyState = copy.deepcopy(startState)
+			next = findLowestNextCity(greedyState.array,start)
+			currentTour = []
+			while next[0] != float('inf'):
+				currentTour.append(current)
+				greedyState.setBitMaps(current,next[1])
+				greedyState.array = setRowAndColumns(greedyState.array,current,next[1])
+				current = next[1]
+				print(greedyState.array)
+				greedyState = rowReduceMatrix(greedyState)
+				greedyState = columnReduceMatrix(greedyState)
+				print(greedyState.array, greedyState.cost)
+				next = findLowestNextCity(greedyState.array,current)
+			if all(greedyState.columnBit[:] == 0):
+				count +=1
+				if greedyState.cost < bssf:
+					bssf = greedyState.cost
+					foundTour = currentTour
+					time_spent = time.time()
+					
+			start += 1
 
-		pass
+		return int(bssf),int(time_spent),int(count),foundTour,None,None,None
 
 
 
