@@ -75,10 +75,11 @@ def setRowAndColumns(array,i,j):
 	array[:,j] = float('inf')
 	return array
 
-	
-
-
-
+def checkIfRootEdge(cities, start, end):
+	if cities[end].costTo(cities[start]) != float('inf'):
+		return True
+	else:
+		return False
 
 class TSPSolver:
 	def __init__( self, gui_view ):
@@ -143,6 +144,7 @@ class TSPSolver:
 	'''
 
 	def greedy( self,time_allowance=60.0 ):
+		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
 		foundTour = False
@@ -164,6 +166,7 @@ class TSPSolver:
 				currentTour.append(current)
 				greedyState.setBitMaps(current,next[1])
 				greedyState.array = setRowAndColumns(greedyState.array,current,next[1])
+				greedyState.array = setRowAndColumns(greedyState.array,current,current)
 				current = next[1]
 				print(greedyState.array)
 				greedyState = rowReduceMatrix(greedyState)
@@ -171,15 +174,23 @@ class TSPSolver:
 				print(greedyState.array, greedyState.cost)
 				next = findLowestNextCity(greedyState.array,current)
 			if all(greedyState.columnBit[:] == 0):
-				count +=1
-				if greedyState.cost < bssf:
-					bssf = greedyState.cost
-					foundTour = currentTour
-					time_spent = time.time()
+				if checkIfRootEdge(cities, start, current):
+					foundTour.append(0)
+					count +=1
+					if greedyState.cost < bssf:
+						bssf = greedyState.cost
+						foundTour = currentTour
+						time_spent = time.time()
+						results['cost'] = bssf
+						results['time'] = time_spent
+						results['count'] = count
+						results['soln'] = foundTour
+						results['max'] = None
+						results['total'] = None
+						results['pruned'] = None
 					
 			start += 1
-
-		return int(bssf),int(time_spent),int(count),foundTour,None,None,None
+		return results
 
 
 
