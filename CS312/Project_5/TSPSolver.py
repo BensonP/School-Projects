@@ -40,6 +40,7 @@ class state:
 		self = columnReduceMatrix(self)
 		print(self.array)
 		print(self.cost)
+		print(float('inf') - float('inf'))
 
 	def setBitMaps(self,row,column):
 		self.array[column,row] = float('inf')
@@ -56,15 +57,17 @@ def findLowestNextCity(array,i): #Returns a tuple (cost to that city, and next c
 def rowReduceMatrix(state):
 	for i in range(state.array.shape[0]):
 		if state.rowBit[i] != 0:
-			lowest = findLowestNextCity(state.array,i)
-			state.array[i][:] -= lowest[0]
-			state.cost += lowest[0]
+			lowest = np.min(state.array[i,:])
+			if lowest == float('inf'): continue
+			state.array[i][:] -= lowest
+			state.cost += lowest
 	return state
 
 def columnReduceMatrix(state):
 	for j in range(state.array.shape[1]):
 		if state.columnBit[j] != 0:
 			lowest = np.min(state.array[:,j])
+			if lowest == float('inf'): continue
 			state.array[:,j] -= lowest
 			state.cost += lowest
 	return state
@@ -163,10 +166,9 @@ class TSPSolver:
 			next = findLowestNextCity(greedyState.array,start)
 			currentTour = []
 			while next[0] != float('inf'):
-				currentTour.append(current)
+				currentTour.append(cities[current])
 				greedyState.setBitMaps(current,next[1])
 				greedyState.array = setRowAndColumns(greedyState.array,current,next[1])
-				greedyState.array = setRowAndColumns(greedyState.array,current,current)
 				current = next[1]
 				print(greedyState.array)
 				greedyState = rowReduceMatrix(greedyState)
@@ -174,20 +176,18 @@ class TSPSolver:
 				print(greedyState.array, greedyState.cost)
 				next = findLowestNextCity(greedyState.array,current)
 			if all(greedyState.columnBit[:] == 0):
-				if checkIfRootEdge(cities, start, current):
-					foundTour.append(0)
-					count +=1
-					if greedyState.cost < bssf:
-						bssf = greedyState.cost
-						foundTour = currentTour
-						time_spent = time.time()
-						results['cost'] = bssf
-						results['time'] = time_spent
-						results['count'] = count
-						results['soln'] = foundTour
-						results['max'] = None
-						results['total'] = None
-						results['pruned'] = None
+				count +=1
+				if greedyState.cost < bssf:
+					bssf = greedyState.cost
+					foundTour = currentTour
+					time_spent = time.time() - start_time
+					results['cost'] = bssf
+					results['time'] = time_spent
+					results['count'] = count
+					results['soln'] = TSPSolution(foundTour)
+					results['max'] = None
+					results['total'] = None
+					results['pruned'] = None
 					
 			start += 1
 		return results
