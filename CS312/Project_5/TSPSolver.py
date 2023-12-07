@@ -20,27 +20,32 @@ import random
 import copy
 
 class state:
-	def __init__(self,size,cities):
-		self.array = np.zeros((size,size))
-		self.cost = 0
-		self.rowBit = np.full(size,1)
-		self.columnBit = np.copy(self.rowBit)
-		self.fillMatrix(cities, size)
-		self.solution = []
-		self.cityIndexes = []
+	def __init__(self,size,cities = None, cost = 0, rowBit = [], columnBit = [], cityIndexes = [], array = [[]]):
+		if len(columnBit) != 0:
+			self.rowBit = rowBit
+			self.columnBit = columnBit
+		else:
+			self.rowBit = np.full(size,1)
+			self.columnBit = np.copy(self.rowBit)
+		if len(cities) != 0:
+			self.array = np.zeros((size,size))
+			self.cost = 0
+			self.fillMatrix(cities, size)
+		else: 
+			self.array = array
+			self.cost = cost
+		if len(cityIndexes) != 0:
+			self.cityIndexes = cityIndexes
+		else:
+			self.cityIndexes = []
+		self.citySolution = []
 
 	def fillMatrix(self, cities, size):
 		for i in range(size):
 			for j in range(size):
 				self.array[i,j] = cities[i].costTo(cities[j])
-		#print(self.array)
 		self = rowReduceMatrix(self)
-		#print(self.array)
-		#print(self.cost)
 		self = columnReduceMatrix(self)
-		#print(self.array)
-		#print(self.cost)
-		#print(float('inf') - float('inf'))
 
 	def setBitMaps(self,row,column):
 		self.array[column,row] = float('inf')
@@ -53,12 +58,33 @@ class state:
 		self.array[i,:] = float('inf')
 		self.array[:,j] = float('inf')
 		return self.array
+	
 
 	def __lt__(self, other):
-		if len(self.solution) == len(other.solution):
+
+		if len(self.cityIndexes) == len(other.cityIndexes):
 			return self.cost < other.cost
 		else:
-			return len(self.solution) > len(other.solution)
+			return len(self.cityIndexes) > len(other.cityIndexes)
+		
+		
+	def copy(self):
+		newArray = self.array.copy()
+		newColumnBit = self.columnBit.copy()
+		newRowBit = self.rowBit.copy()
+		newCost = self.cost.copy()
+		newCityIndexes = self.cityIndexes.copy()
+
+		newState = state(newArray.shape[0],[],newCost,newRowBit,newColumnBit,newCityIndexes,newArray)
+		return(newState)
+
+		
+
+def getPath(solution, cities):
+		path = []
+		for i in range(len(solution)):
+			path.append(cities[solution[i]])
+		return path
 
 def findLowestNextCity(array,i,start,citiesCount,currentLength): #Returns a tuple (cost to that city, and next city index)
 	lowest = (float('inf'),None)
@@ -70,7 +96,7 @@ def findLowestNextCity(array,i,start,citiesCount,currentLength): #Returns a tupl
 				lowest = (array[i,j],j)
 	return lowest
 
-def rowReduceMatrix(state):
+def rowReduceMatrix(state) -> state:
 	for i in range(state.array.shape[0]):
 		if state.rowBit[i] != 0:
 			lowest = np.min(state.array[i,:])
@@ -81,7 +107,7 @@ def rowReduceMatrix(state):
 				state.cost += lowest
 	return state
 
-def columnReduceMatrix(state):
+def columnReduceMatrix(state) -> state:
 	for j in range(state.array.shape[1]):
 		if state.columnBit[j] != 0:
 			lowest = np.min(state.array[:,j])
@@ -94,33 +120,35 @@ def columnReduceMatrix(state):
 
 
 
-def checkIfRootEdge(cities, start, end):
+def checkIfRootEdge(cities, start, end) -> bool:
 	if cities[end].costTo(cities[start]) != float('inf'):
 		return True
 	else:
 		return False
 	
-def generateChildrenStates(parentState, currentCity, states, priorityQueue, bssf, totalCities, stateNumber, cities, pruned):
+def generateChildrenStates(parentState, priorityQueue, bssf, stateNumber, pruned):
 	#print(parentState.array, parentState.cost)
-	if len(parentState.cityIndexes) == totalCities:
-		if checkIfRootEdge(cities, 0, currentCity):
-			print(parentState.array[currentCity,0])
+	totalCities = parentState.array.shape[0]
+	currentCity = parentState.cityIndexes[-1]
+	if len(parentState.cityIndexes) == totalCities: #Check if current parentState is a valid solution
+		if parentState.array[currentCity,0] != float('inf'):
 			parentState.cost += parentState.array[currentCity,0]
 			return True,stateNumber, pruned
 		else:
 			pruned +=1
 			return False,stateNumber,pruned
+	
 	for j in range(parentState.array.shape[0]):
-		childState = copy.deepcopy(parentState)
+		childState:state = parentState.copy()
 		stateNumber += 1
-		if parentState.array[currentCity,j] != float('inf'):
+		if parentState.array[currentCity,j] != float('inf') and parentState.columnBit[j] == 1:
 			childState.setBitMaps(currentCity, j)
 			childState.setRowAndColumns(currentCity, j)
 			rowReduceMatrix(childState)
 			columnReduceMatrix(childState)
 			#print(childState.array, childState.cost)
 			childState.cityIndexes.append(j)
-			childState.solution.append(cities[j])
+			
 			if j == 0 and len(childState.cityIndexes) < totalCities: 
 				pruned +=1
 				continue
@@ -263,12 +291,12 @@ class TSPSolver:
 		start_time = time.time()
 		startState = state(ncities,cities)
 		startState.cityIndexes.append(0)
-		startState.solution.append(cities[0])
 		priorityQueue = []
 		states = {}
 		priorityQueue.append(startState)
 		states[startState.cost] = startState
-		stateNumber = 1
+		stateNumber = 0
+		maxSize = 0
 		pruned = 0
 
 		while time.time()-start_time < time_allowance:
@@ -276,15 +304,18 @@ class TSPSolver:
 				currentState = heapq.heappop(priorityQueue)
 				if currentState.cost <= bssf:
 					currentCity = currentState.cityIndexes[-1]
-					result,stateNumber, pruned = generateChildrenStates(currentState, currentCity, states,priorityQueue, bssf, ncities, stateNumber, cities, pruned)
+					result,stateNumber, pruned = generateChildrenStates(currentState, priorityQueue, bssf, stateNumber, pruned)
+					if len(priorityQueue) > maxSize:
+						maxSize = len(priorityQueue)
 					if result:
+						count += 1
 						bssf = currentState.cost
 						results['cost'] = bssf
 						results['time'] = time.time() - start_time
 						results['count'] = count
-						results['soln'] = TSPSolution(currentState.solution)
-						results['max'] = None
-						results['total'] = stateNumber
+						results['soln'] = TSPSolution(getPath(currentState.cityIndexes, cities))
+						results['max'] = maxSize
+						results['total'] = stateNumber + pruned
 						results['pruned'] = pruned
 				else:
 					pruned +=1
