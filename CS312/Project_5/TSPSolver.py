@@ -26,63 +26,112 @@ class state:
 		self.rowBit = np.full(size,1)
 		self.columnBit = np.copy(self.rowBit)
 		self.fillMatrix(cities, size)
+		self.solution = []
+		self.cityIndexes = []
 
 	def fillMatrix(self, cities, size):
 		for i in range(size):
 			for j in range(size):
 				self.array[i,j] = cities[i].costTo(cities[j])
-		print(self.array)
-		lowest = findLowestNextCity(self.array,0)
-		print(lowest)
+		#print(self.array)
 		self = rowReduceMatrix(self)
-		print(self.array)
-		print(self.cost)
+		#print(self.array)
+		#print(self.cost)
 		self = columnReduceMatrix(self)
-		print(self.array)
-		print(self.cost)
-		print(float('inf') - float('inf'))
+		#print(self.array)
+		#print(self.cost)
+		#print(float('inf') - float('inf'))
 
 	def setBitMaps(self,row,column):
 		self.array[column,row] = float('inf')
 		self.rowBit[row] = 0
 		self.columnBit[column] = 0
 
-def findLowestNextCity(array,i): #Returns a tuple (cost to that city, and next city index)
+	def setRowAndColumns(self,i,j):
+		self.cost += self.array[i,j]
+		self.array[j,i] = float('inf')
+		self.array[i,:] = float('inf')
+		self.array[:,j] = float('inf')
+		return self.array
+
+	def __lt__(self, other):
+		if len(self.solution) == len(other.solution):
+			return self.cost < other.cost
+		else:
+			return len(self.solution) > len(other.solution)
+
+def findLowestNextCity(array,i,start,citiesCount,currentLength): #Returns a tuple (cost to that city, and next city index)
 	lowest = (float('inf'),None)
 	for j in range(array.shape[0]):
 		if array[i,j] < lowest[0]:
-			lowest = (array[i,j],j)
+			if j != start and currentLength < citiesCount - 1:
+				lowest = (array[i,j],j)
+			if j == start and currentLength == citiesCount - 1:
+				lowest = (array[i,j],j)
 	return lowest
 
 def rowReduceMatrix(state):
 	for i in range(state.array.shape[0]):
 		if state.rowBit[i] != 0:
 			lowest = np.min(state.array[i,:])
-			if lowest == float('inf'): continue
-			state.array[i][:] -= lowest
-			state.cost += lowest
+			if lowest == float('inf'):
+				state.cost = float('inf')
+			else:
+				state.array[i][:] -= lowest
+				state.cost += lowest
 	return state
 
 def columnReduceMatrix(state):
 	for j in range(state.array.shape[1]):
 		if state.columnBit[j] != 0:
 			lowest = np.min(state.array[:,j])
-			if lowest == float('inf'): continue
-			state.array[:,j] -= lowest
-			state.cost += lowest
+			if lowest == float('inf'):
+				state.cost = float('inf')
+			else:
+				state.array[:,j] -= lowest
+				state.cost += lowest
 	return state
 
-def setRowAndColumns(array,i,j):
-	array[j,i] = float('inf')
-	array[i,:] = float('inf')
-	array[:,j] = float('inf')
-	return array
+
 
 def checkIfRootEdge(cities, start, end):
 	if cities[end].costTo(cities[start]) != float('inf'):
 		return True
 	else:
 		return False
+	
+def generateChildrenStates(parentState, currentCity, states, priorityQueue, bssf, totalCities, stateNumber, cities, pruned):
+	#print(parentState.array, parentState.cost)
+	if len(parentState.cityIndexes) == totalCities:
+		if checkIfRootEdge(cities, 0, currentCity):
+			print(parentState.array[currentCity,0])
+			parentState.cost += parentState.array[currentCity,0]
+			return True,stateNumber, pruned
+		else:
+			pruned +=1
+			return False,stateNumber,pruned
+	for j in range(parentState.array.shape[0]):
+		childState = copy.deepcopy(parentState)
+		stateNumber += 1
+		if parentState.array[currentCity,j] != float('inf'):
+			childState.setBitMaps(currentCity, j)
+			childState.setRowAndColumns(currentCity, j)
+			rowReduceMatrix(childState)
+			columnReduceMatrix(childState)
+			#print(childState.array, childState.cost)
+			childState.cityIndexes.append(j)
+			childState.solution.append(cities[j])
+			if j == 0 and len(childState.cityIndexes) < totalCities: 
+				pruned +=1
+				continue
+			if childState.cost > bssf: 
+				pruned +=1
+				continue
+			priorityQueue.append(childState)
+		else:
+			pruned +=1
+	heapq.heapify(priorityQueue)
+	return False,stateNumber,pruned
 
 class TSPSolver:
 	def __init__( self, gui_view ):
@@ -163,18 +212,20 @@ class TSPSolver:
 		while time.time()-start_time < time_allowance and start < ncities:
 			current = start
 			greedyState = copy.deepcopy(startState)
-			next = findLowestNextCity(greedyState.array,start)
+			next = findLowestNextCity(greedyState.array,start,start,ncities,0)
+			greedyState.cost += next[0]
 			currentTour = []
 			while next[0] != float('inf'):
 				currentTour.append(cities[current])
 				greedyState.setBitMaps(current,next[1])
-				greedyState.array = setRowAndColumns(greedyState.array,current,next[1])
+				greedyState.setRowAndColumns(current,next[1])
 				current = next[1]
-				print(greedyState.array)
+				greedyState.cost += next[0]
+				#print(greedyState.array)
 				greedyState = rowReduceMatrix(greedyState)
 				greedyState = columnReduceMatrix(greedyState)
-				print(greedyState.array, greedyState.cost)
-				next = findLowestNextCity(greedyState.array,current)
+				#print(greedyState.array, greedyState.cost)
+				next = findLowestNextCity(greedyState.array,current,start,ncities,len(currentTour))
 			if all(greedyState.columnBit[:] == 0):
 				count +=1
 				if greedyState.cost < bssf:
@@ -204,7 +255,42 @@ class TSPSolver:
 	'''
 
 	def branchAndBound( self, time_allowance=60.0 ):
-		pass
+		results = {}
+		cities = self._scenario.getCities()
+		ncities = len(cities)
+		count = 0
+		bssf = self.greedy()['cost']
+		start_time = time.time()
+		startState = state(ncities,cities)
+		startState.cityIndexes.append(0)
+		startState.solution.append(cities[0])
+		priorityQueue = []
+		states = {}
+		priorityQueue.append(startState)
+		states[startState.cost] = startState
+		stateNumber = 1
+		pruned = 0
+
+		while time.time()-start_time < time_allowance:
+			if len(priorityQueue) != 0 :
+				currentState = heapq.heappop(priorityQueue)
+				if currentState.cost <= bssf:
+					currentCity = currentState.cityIndexes[-1]
+					result,stateNumber, pruned = generateChildrenStates(currentState, currentCity, states,priorityQueue, bssf, ncities, stateNumber, cities, pruned)
+					if result:
+						bssf = currentState.cost
+						results['cost'] = bssf
+						results['time'] = time.time() - start_time
+						results['count'] = count
+						results['soln'] = TSPSolution(currentState.solution)
+						results['max'] = None
+						results['total'] = stateNumber
+						results['pruned'] = pruned
+				else:
+					pruned +=1
+			else:
+				return results
+		return results
 
 
 
