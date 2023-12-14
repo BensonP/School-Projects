@@ -20,9 +20,15 @@ import random
 import copy
 
 class state:
+	'''
+	The class that holds different states. Each state holds an adjacency matrix, and is initilized to be reduced. Holds a cost, and indexes of city in the order of the current path. 
+	Also includes a row and column bit map, that is either 1 for not being visited, or 0 for being visited. 
+	I can initilize it with a list of cities and a size, or with attributes to copy a new matrix. 
+
+	'''
 	def __init__(self,size,cities = None, cost = 0, rowBit = [], columnBit = [], cityIndexes = [], array = [[]]):
 		if len(columnBit) != 0:
-			self.rowBit = rowBit
+			self.rowBit = rowBit 
 			self.columnBit = columnBit
 		else:
 			self.rowBit = np.full(size,1)
@@ -38,17 +44,16 @@ class state:
 			self.cityIndexes = cityIndexes
 		else:
 			self.cityIndexes = []
-		self.citySolution = []
+	
 
-	def fillMatrix(self, cities, size):
+	def fillMatrix(self, cities, size): #This initilizes my matrix with the first costs of different  Time: O(n^2)
 		for i in range(size):
 			for j in range(size):
 				self.array[i,j] = cities[i].costTo(cities[j])
 		self = rowReduceMatrix(self)
 		self = columnReduceMatrix(self)
 
-	def setBitMaps(self,row,column):
-		self.array[column,row] = float('inf')
+	def setBitMaps(self,row,column): #sets bit map according to the row and column. This helps me know what columns and rows need to be looked at when being reduced. If 0, dont reduce that row or column. 
 		self.rowBit[row] = 0
 		self.columnBit[column] = 0
 
@@ -60,7 +65,7 @@ class state:
 		return self.array
 	
 
-	def __lt__(self, other):
+	def __lt__(self, other): #Overriding my lt operator for my priority queue. If my length of cities are the same, return the state with the lowest cost. Otherwise return the state with longest solution. 
 
 		if len(self.cityIndexes) == len(other.cityIndexes):
 			return self.cost < other.cost
@@ -68,7 +73,7 @@ class state:
 			return len(self.cityIndexes) > len(other.cityIndexes)
 		
 		
-	def copy(self):
+	def copy(self): #Copys the source matrix and returns a new matrix. Very helpful for generating and expanding states
 		newArray = self.array.copy()
 		newColumnBit = self.columnBit.copy()
 		newRowBit = self.rowBit.copy()
@@ -80,13 +85,13 @@ class state:
 
 		
 
-def getPath(solution, cities):
+def getPath(solution, cities) -> [City]: #This returns a list of cities when given a list of indexes. 
 		path = []
 		for i in range(len(solution)):
 			path.append(cities[solution[i]])
 		return path
 
-def findLowestNextCity(array,i,start,citiesCount,currentLength): #Returns a tuple (cost to that city, and next city index)
+def findLowestNextCity(array,i,start,citiesCount,currentLength): #Returns a tuple (cost to that city, and next city index) of the lowest next city. If it would return back to source too early, then return the second lowest. 
 	lowest = (float('inf'),None)
 	for j in range(array.shape[0]):
 		if array[i,j] < lowest[0]:
@@ -96,7 +101,7 @@ def findLowestNextCity(array,i,start,citiesCount,currentLength): #Returns a tupl
 				lowest = (array[i,j],j)
 	return lowest
 
-def rowReduceMatrix(state) -> state:
+def rowReduceMatrix(state) -> state: #Takes in a state and returns a state with a row reduced matrix and an adjusted cost. 
 	for i in range(state.array.shape[0]):
 		if state.rowBit[i] != 0:
 			lowest = np.min(state.array[i,:])
@@ -107,7 +112,7 @@ def rowReduceMatrix(state) -> state:
 				state.cost += lowest
 	return state
 
-def columnReduceMatrix(state) -> state:
+def columnReduceMatrix(state) -> state: #Takes in a state and returns a state with its column reduced matrix and adjusted cost. 
 	for j in range(state.array.shape[1]):
 		if state.columnBit[j] != 0:
 			lowest = np.min(state.array[:,j])
@@ -120,14 +125,21 @@ def columnReduceMatrix(state) -> state:
 
 
 
-def checkIfRootEdge(cities, start, end) -> bool:
+def checkIfRootEdge(cities, start, end) -> bool: #Check if there is a edge from the end city to the start city.
 	if cities[end].costTo(cities[start]) != float('inf'):
 		return True
 	else:
 		return False
 	
 def generateChildrenStates(parentState, priorityQueue, bssf, stateNumber, pruned):
-	#print(parentState.array, parentState.cost)
+	'''
+	The bulk of my branch and bound algorithm. Given a state, a priority Queue, a BSSF, State number, and pruned, 
+	return true if the parentState is a valid solution, false if otherwise.
+	Return updated stateNumber for total states	
+	Return updated pruned number for total states pruned. 
+	Looks at every possible child state from a parent state. Only adds those states whos cost is < than BSSF and is not an incomplete solution. I.E. a solution that is mising some cities. 
+
+	'''
 	totalCities = parentState.array.shape[0]
 	currentCity = parentState.cityIndexes[-1]
 	if len(parentState.cityIndexes) == totalCities: #Check if current parentState is a valid solution
@@ -139,14 +151,13 @@ def generateChildrenStates(parentState, priorityQueue, bssf, stateNumber, pruned
 			return False,stateNumber,pruned
 	
 	for j in range(parentState.array.shape[0]):
-		childState:state = parentState.copy()
+		childState:state = parentState.copy() #Makes a copy to iterate off of. 
 		stateNumber += 1
 		if parentState.array[currentCity,j] != float('inf') and parentState.columnBit[j] == 1:
 			childState.setBitMaps(currentCity, j)
 			childState.setRowAndColumns(currentCity, j)
 			rowReduceMatrix(childState)
 			columnReduceMatrix(childState)
-			#print(childState.array, childState.cost)
 			childState.cityIndexes.append(j)
 			
 			if j == 0 and len(childState.cityIndexes) < totalCities: 
@@ -158,7 +169,7 @@ def generateChildrenStates(parentState, priorityQueue, bssf, stateNumber, pruned
 			priorityQueue.append(childState)
 		else:
 			pruned +=1
-	heapq.heapify(priorityQueue)
+	heapq.heapify(priorityQueue) #Orders my PQ by len of current solution, then lower state cost. 
 	return False,stateNumber,pruned
 
 class TSPSolver:
@@ -224,13 +235,20 @@ class TSPSolver:
 	'''
 
 	def greedy( self,time_allowance=60.0 ):
+		'''
+		Greedy algorithm is a modified version of my branch and bound. 
+		It iterates through each city for it to be treated as a start city.
+		If a invalid solution is found, continue to next city.
+		If a valid solution is found, wherean edge from end to start exists and the le(solution) is equal to len(cities),
+		Then set that as my current bssf if it is lower then the previous bssf. 
+		Do this for each city.
+		'''
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
 		foundTour = False
 		count = 0
 		bssf = float('inf')
-		found = False
 		time_spent = 0
 		start_time = time.time()
 
@@ -249,10 +267,8 @@ class TSPSolver:
 				greedyState.setRowAndColumns(current,next[1])
 				current = next[1]
 				greedyState.cost += next[0]
-				#print(greedyState.array)
 				greedyState = rowReduceMatrix(greedyState)
 				greedyState = columnReduceMatrix(greedyState)
-				#print(greedyState.array, greedyState.cost)
 				next = findLowestNextCity(greedyState.array,current,start,ncities,len(currentTour))
 			if all(greedyState.columnBit[:] == 0):
 				count +=1
@@ -283,13 +299,26 @@ class TSPSolver:
 	'''
 
 	def branchAndBound( self, time_allowance=60.0 ):
+		'''
+		This starts at city 0 and creates a starting matrix based off of that using cities and length of cities. 
+		The first city is popped onto my priority queue
+		At the start of my while loop, pop off first state, and then expand it. 
+		If my priority Queue size updates, then update maxSize.
+		If result is true, meaning that the passed in state was a valid solution, then I set it to BSSF if it is lower then the current BSSF. 
+		I continue this until my PQ is empty or I run out of time. I only expand those that are a valid soution and are less than or equal to current BSSF. 
+		time complexity: 
+		space complexity: 
+		
+		'''
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
-		count = 0
-		bssf = self.greedy()['cost']
+		solutionCount = 0  #count of total solutions found
+		greedyResults = self.greedy()
+		bssf = greedyResults['cost']
+		greedySolution = greedyResults['soln']#gets my bssf from greedy
 		start_time = time.time()
-		startState = state(ncities,cities)
+		startState = state(ncities,cities) #starting state
 		startState.cityIndexes.append(0)
 		priorityQueue = []
 		states = {}
@@ -301,38 +330,34 @@ class TSPSolver:
 
 		while time.time()-start_time < time_allowance:
 			if len(priorityQueue) != 0 :
-				currentState = heapq.heappop(priorityQueue)
-				if currentState.cost <= bssf:
-					currentCity = currentState.cityIndexes[-1]
-					result,stateNumber, pruned = generateChildrenStates(currentState, priorityQueue, bssf, stateNumber, pruned)
+				currentState = heapq.heappop(priorityQueue) #Returns state top of my PQ
+				if currentState.cost <= bssf: #If the state is bigger than BSSF, prune it
+					result,stateNumber, pruned = generateChildrenStates(currentState, priorityQueue, bssf, stateNumber, pruned) #my priorityQueue is updated within the function, and returns my updated pruned and stateNumbers. 
+					results['total'] = stateNumber + pruned #State number is only what was added to the PriorityQueue, so have to add it. 
+					results['pruned'] = pruned
 					if len(priorityQueue) > maxSize:
 						maxSize = len(priorityQueue)
+						results['max'] = maxSize
 					if result:
-						count += 1
+						solutionCount += 1
 						bssf = currentState.cost
 						results['cost'] = bssf
 						results['time'] = time.time() - start_time
-						results['count'] = count
+						results['count'] = solutionCount
 						results['soln'] = TSPSolution(getPath(currentState.cityIndexes, cities))
-						results['max'] = maxSize
-						results['total'] = stateNumber + pruned
-						results['pruned'] = pruned
+
+						
 				else:
-					pruned +=1
+					pruned +=1 #Update pruned and set total and pruned again. 
+					results['total'] = stateNumber + pruned
+					results['pruned'] = pruned
 			else:
+				
 				return results
+		if solutionCount == 0:
+					results['pruned'] = pruned + len(priorityQueue)
+					results['cost'] = bssf
+					results['time'] = time.time() - start_time
+					results['count'] = solutionCount
+					results['soln'] = greedySolution
 		return results
-
-
-
-	''' <summary>
-		This is the entry point for the algorithm you'll write for your group project.
-		</summary>
-		<returns>results dictionary for GUI that contains three ints: cost of best solution,
-		time spent to find best solution, total number of solutions found during search, the
-		best solution found.  You may use the other three field however you like.
-		algorithm</returns>
-	'''
-
-	def fancy( self,time_allowance=60.0 ):
-		pass
