@@ -20,7 +20,7 @@ Developed a ray tracer capable of showcasing:
 ![Ray Tracer on Various Objects](CS455/RayTracerFinal/program_6-scene_2.png)
 
 #### **3D Rendering**
-HousesRendering.py: 
+[`HousesRendering.py`](CS455/3DRendering/HousesRendering.py):
   - 3D renders a neighborhood in wireframe.
   - Includes a moving car to demonstrate animation.
 
