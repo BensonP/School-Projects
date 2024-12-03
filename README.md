@@ -8,21 +8,29 @@ This repo has a lot of my projects from various classes.
 
 ### **355 Projects - Image Processing**
 
-### **455 Projects - Ray Tracing, 3D Rendering, and UE5 video game**
-- Developed a ray tracer capable of showcasing:
-  - **Shadows**
-  - **Specular highlights**
-  - **Reflection**
+### **455 Projects - Computer Graphics**
+
+#### **Ray Tracing**
+- **Developed a ray tracer capable of showcasing:**
+  - Shadows
+  - Specular highlights
+  - Reflection
   
 #### **Ray Tracer Example Output**
 ![Ray Tracer on Various Objects](CS455/RayTracerFinal/program_6-scene_2.png)
 
+ #### **3D Rendering**
 - **HousesRendering.py**: 
   - 3D renders a neighborhood in wireframe.
   - Includes a moving car to demonstrate animation.
 
-The following video highlights a game I made in UE5 using blueprints for my class. The model was made in maya.
-The arrows change gravity
-Different buttons move platforms
-The jump spheres give you a double jump. 
-[![Gravity Game](https://drive.google.com/file/d/1SeWYGrSVbLvafB8l22DgEIOayhqYdU9N/view?usp=drive_link)](https://drive.google.com/file/d/1SeWYGrSVbLvafB8l22DgEIOayhqYdU9N/view?usp=drive_link)
+#### **UE5 Gravit Video Game**
+This project was created in **Unreal Engine 5** using Blueprints as part of my coursework. The gameplay includes:
+- **Gravity Control**: Use the arrows to change gravity.
+- **Platform Movement**: Activate platforms with designated buttons.
+- **Double Jump**: Jump spheres grant a double jump ability.
+
+The rock golem was created in **Maya**. Watch the gameplay demo below:
+
+[![Gravity Game](https://img.youtube.com/vi/dummythumbnail.jpg)](https://drive.google.com/file/d/1SeWYGrSVbLvafB8l22DgEIOayhqYdU9N/view?usp=drive_link)
+
