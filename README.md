@@ -1,8 +1,8 @@
-# Class Projects Repository
-This repo has a lot of my projects from various classes. 
-
----
-
+# School Projects
+A collection of programming and development projects completed during my coursework. Highlights include:
+- Algorithms in Python
+- Image processing techniques
+- 3D rendering and ray tracing
 ## Classes 
 ### **312 projects - Algorithms**
 
