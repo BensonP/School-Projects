@@ -11,7 +11,7 @@ This repo has a lot of my projects from various classes.
 ### **455 Projects - Computer Graphics**
 
 #### **Ray Tracing**
-- **Developed a ray tracer capable of showcasing:**
+Developed a ray tracer capable of showcasing:
   - Shadows
   - Specular highlights
   - Reflection
@@ -19,8 +19,8 @@ This repo has a lot of my projects from various classes.
 #### **Ray Tracer Example Output**
 ![Ray Tracer on Various Objects](CS455/RayTracerFinal/program_6-scene_2.png)
 
- #### **3D Rendering**
-- **HousesRendering.py**: 
+#### **3D Rendering**
+HousesRendering.py: 
   - 3D renders a neighborhood in wireframe.
   - Includes a moving car to demonstrate animation.
 
