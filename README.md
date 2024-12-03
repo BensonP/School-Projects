@@ -23,8 +23,9 @@ Developed a ray tracer capable of showcasing:
 [`HousesRendering.py`](CS455/3DRendering/HousesRendering.py):
   - 3D renders a neighborhood in wireframe.
   - Includes a moving car to demonstrate animation.
+    ![Neighborhood Render](CS455/3DRendering/image.png)
 
-#### **UE5 Gravit Video Game**
+#### **UE5 Gravity Video Game**
 This project was created in **Unreal Engine 5** using Blueprints as part of my coursework. The gameplay includes:
 - **Gravity Control**: Use the arrows to change gravity.
 - **Platform Movement**: Activate platforms with designated buttons.
