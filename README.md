@@ -12,9 +12,9 @@ This repo has a lot of my projects from various classes.
 
 #### **Ray Tracing**
 Developed a ray tracer capable of showcasing:
-  - Shadows
-  - Specular highlights
-  - Reflection
+  - **Shadows**
+  - **Specular highlights**
+  - **Reflection**
   
 #### **Ray Tracer Example Output**
 ![Ray Tracer on Various Objects](CS455/RayTracerFinal/program_6-scene_2.png)
