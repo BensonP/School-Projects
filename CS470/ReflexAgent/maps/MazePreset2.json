@@ -16,7 +16,7 @@
       ],
       "radius": 2.5,
       "spin": 30,
-      "speed": 6,
+      "speed": 12,
       "bias": 0,
       "sensor_range": 200
     },
