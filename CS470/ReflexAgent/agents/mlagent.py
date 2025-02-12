@@ -18,7 +18,7 @@ class MLAgent(Agent):
         load_success = self.load(model_path)
         if not load_success:
             # TODO: generate your own data
-            df = pd.read_csv(f'./data/robot_recording_sample.csv')
+            df = pd.read_csv(f'./data/robot_recording_02-01-2025_16-19-41.csv')
 
             # Here is an example of feature engineering
             # This creates features to encode the robots rotation in radians and as well as in an xy heading format
@@ -36,13 +36,13 @@ class MLAgent(Agent):
                 'dist_sensor_3', 'dist_sensor_4', 'dist_sensor_5', 'dist_sensor_6',
                 'dist_sensor_7', 'dist_sensor_8', 'dist_sensor_9', 'dist_sensor_10',
                 'dist_sensor_11', 'dist_sensor_12', 'dist_sensor_13', 'dist_sensor_14',
-                'dist_sensor_15']
+                'dist_sensor_15', 'robot_dir_rads', 'robot_dir_x', 'robot_dir_y']
 
             restricted_features = ['dist_sensor_0', 'dist_sensor_1', 'dist_sensor_2',
                 'dist_sensor_3', 'dist_sensor_4', 'dist_sensor_5', 'dist_sensor_6',
                 'dist_sensor_7', 'dist_sensor_8', 'dist_sensor_9', 'dist_sensor_10',
                 'dist_sensor_11', 'dist_sensor_12', 'dist_sensor_13', 'dist_sensor_14',
-                'dist_sensor_15', 'robot_dir_x', 'robot_dir_y']
+                'dist_sensor_15', 'robot_dir_x', 'robot_dir_y',]
             
             features = default_features
 
@@ -53,9 +53,10 @@ class MLAgent(Agent):
             # For convenience convert the data to numpy arrays
             X = df[features].to_numpy()
             Y = df[labels].to_numpy().flatten()
+            print("Training feature shape:", X.shape)
 
             # TODO: try different ml models with different parameters see the README for more info
-            self.model = KNeighborsClassifier(n_neighbors=2, weights='distance')
+            self.model = KNeighborsClassifier(n_neighbors=5, weights='distance')
 
             self.train(X, Y)
 
@@ -72,11 +73,16 @@ class MLAgent(Agent):
         robot_theta = np.radians(robot_pos[2])
         robot_dir_x = np.cos(robot_theta)
         robot_dir_y = np.sin(robot_theta)
+        robot_dir_rads = robot_theta
 
         # TODO: make sure your feature vector matches what your model was trained with
-        default_feature_vec = [*robot_pos, *goal_pos, *dist_sensors]
+        default_feature_vec = [*robot_pos, *goal_pos, *dist_sensors, robot_dir_rads, robot_dir_x, robot_dir_y]
         restricted_feature_vec = [*dist_sensors, robot_dir_x, robot_dir_y]
         
+        print("Feature vector type:", type(default_feature_vec))
+        print("Feature vector shape:", np.array(default_feature_vec).shape)
+        print("Feature vector values:", default_feature_vec)
+
         result = self.model.predict([np.array(default_feature_vec)])
         
         # You don't need to change anything beyond this point 
