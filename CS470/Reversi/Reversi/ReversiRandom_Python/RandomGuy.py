@@ -23,40 +23,40 @@ def initClient(me,thehost):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     server_address = (thehost, 3333+me)
-    print(sys.stderr, 'starting up on %s port %s' % server_address)
+    print >> sys.stderr, 'starting up on %s port %s' % server_address
     sock.connect(server_address)
     
     info = sock.recv(1024)
     
-    print( info )
+    print info
 
     return sock
 
 # reads messages from the server
 def readMessage(sock):
     mensaje = sock.recv(1024).split("\n")
-    #print(( mensaje
+    #print mensaje
 
     turn = int(mensaje[0])
-    print( "Turn: " + str(turn))
+    print "Turn: " + str(turn)
 
     if (turn == -999):
         time.sleep(1)
         sys.exit()
 
     round = int(mensaje[1])
-    print( "Round: " + str(round))
+    print "Round: " + str(round)
     t1 = float(mensaje[2])  # update of the amount of time available to player 1
-    #print( t1
+    #print t1
     t2 = float(mensaje[3])  # update of the amount of time available to player 2
-    #print( t2
+    #print t2
 
     count = 4
     for i in range(8):
         for j in range(8):
             state[i][j] = int(mensaje[count])
             count = count + 1
-        print( state[i])
+        print state[i]
 
     return turn, round
 
@@ -104,10 +104,10 @@ def couldBe(row, col, me):
 # generates the set of valid moves for the player; returns a list of valid moves (validMoves)
 def getValidMoves(round, me):
     validMoves = []
-    print( "Round: " + str(round))
+    print "Round: " + str(round)
     
     for i in range(8):
-        print( state[i])
+        print state[i]
 
     if (round < 4):
         if (state[3][3] == 0):
@@ -136,22 +136,22 @@ def playGame(me, thehost):
     sock = initClient(me, thehost)
     
     while (True):
-        print( "Read")
+        print "Read"
         status = readMessage(sock)
     
         if (status[0] == me):
-            print( "Move")
+            print "Move";
             validMoves = getValidMoves(status[1], me)
-            print( validMoves)
+            print validMoves
             
             myMove = move(validMoves)
         
-            sel = str(validMoves[myMove][0]) + "\n" + str(validMoves[myMove][1]) + "\n"
-            print( "<" + sel + ">")
-            sock.send(sel)
-            print( "sent the message")
+            sel = str(validMoves[myMove][0]) + "\n" + str(validMoves[myMove][1]) + "\n";
+            print "<" + sel + ">"
+            sock.send(sel);
+            print "sent the message"
         else:
-            print( "It isn't my turn")
+            print "It isn't my turn"
 
 
     return
@@ -163,10 +163,10 @@ def playGame(me, thehost):
 #   player_number is 1 (for the black player) and 2 (for the white player)
 if __name__ == "__main__":
 
-    print( 'Number of arguments:', len(sys.argv), 'arguments.')
-    print( 'Argument List:', str(sys.argv))
+    print 'Number of arguments:', len(sys.argv), 'arguments.'
+    print 'Argument List:', str(sys.argv)
 
-    print( str(sys.argv[1]))
+    print str(sys.argv[1])
     
     playGame(int(sys.argv[2]), sys.argv[1])
 
