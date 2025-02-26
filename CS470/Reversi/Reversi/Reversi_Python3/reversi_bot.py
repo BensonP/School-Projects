@@ -6,6 +6,7 @@ import copy
 class ReversiBot:
     def __init__(self, move_num):
         self.move_num = move_num
+        self.transposition_table = {}
         
     def make_move(self, state):
         '''
@@ -31,13 +32,20 @@ class ReversiBot:
         if not valid_moves:
             return None
 
-        _, best_move = self.minimax(state, 9, True, state.turn, float('-inf'), float('inf'))  # Get best move from minimax
+        _, best_move = self.minimax(state, 7, True, state.turn, float('-inf'), float('inf'))  # Get best move from minimax
 
         return best_move
     
     def minimax(self, node, depth, maximizingPlayer, startingPlayer, alpha, beta):
+        board_hash = self.hash_board(node.board)
+        if board_hash in self.transposition_table and depth <= self.transposition_table[board_hash][1]:
+            return self.transposition_table[board_hash][0], None
+    
+
         if depth == 0 or len(node.get_valid_moves()) == 0:
-            return self.evaluate_board(node, startingPlayer), None
+            score = self.evaluate_board(node, startingPlayer)
+            self.transposition_table[board_hash] = (score, depth) 
+            return score, None
 
         valid_moves = node.get_valid_moves()
         if not valid_moves:
@@ -103,6 +111,9 @@ class ReversiBot:
             0.5 * (player_edge - opponent_edge)
 
         return score
+
+    def hash_board(self, board):
+        return hash(board.tobytes())
     
     def simulate_move(self, state, move):
         new_state = copy.deepcopy(state)
