@@ -84,7 +84,7 @@ class mySmartMap extends JComponent implements KeyListener {
 
     public void paint(Graphics g) {
         paintProbs(g);
-        //paintValues(g);
+        paintValues(g);
     }
 
     public void paintProbs(Graphics g) {
@@ -269,6 +269,8 @@ public class theRobot extends JFrame {
     
     // store your computed value of being in each state (x, y)
     double[][] Vs;
+
+    private int[][] policy;
     
     public theRobot(String _manual, int _decisionDelay) {
         // initialize variables as specified from the command-line
@@ -283,6 +285,10 @@ public class theRobot extends JFrame {
     
         // Read in the world
         mundo = new World(mundoName);
+
+        probs = new double[mundo.width][mundo.height];
+        Vs = new double[mundo.width][mundo.height];
+        policy = new int[mundo.width][mundo.height];
         
         // set up the GUI that displays the information you compute
         int width = 500;
@@ -404,6 +410,7 @@ public class theRobot extends JFrame {
     // Note: sonars is a bit string with four characters, specifying the sonar reading in the direction of North, South, East, and West
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
     void updateProbabilities(int action, String sonars) {
+        
     // Convert sonar string to boolean array
     boolean[] sonarReadings = new boolean[4];
     sonarReadings[0] = sonars.charAt(0) == '1'; // North
@@ -477,6 +484,104 @@ public class theRobot extends JFrame {
     myMaps.updateProbs(probs);
 }
 
+    void valueIteration() {
+        double gamma = 0.999; // Discount factor
+        double epsilon = 0.01; // Convergence threshold
+        double[][] newVs = new double[mundo.width][mundo.height];
+        double delta;
+
+        // Rewards
+        double R_open = -.004; // Cost for movement
+        double R_goal = 100;   // Reward for goal
+        double R_stair = -100.0; // Penalty for stairwell
+
+        // Initialize Vs if not already
+        for (int x = 0; x < mundo.width; x++) {
+            for (int y = 0; y < mundo.height; y++) {
+                Vs[x][y] = 0.0;
+            }
+        }
+
+        do {
+            delta = 0.0;
+            for (int x = 0; x < mundo.width; x++) {
+                for (int y = 0; y < mundo.height; y++) {
+                    if (mundo.grid[x][y] == 1) { // Wall
+                        newVs[x][y] = 0.0;
+                    } else if (mundo.grid[x][y] == 3) { // Goal (terminal)
+                        newVs[x][y] = R_goal;
+                    } else if (mundo.grid[x][y] == 2) { // Stairwell (terminal)
+                        newVs[x][y] = R_stair;
+                    } else { // Open space
+                        double maxUtility = Double.NEGATIVE_INFINITY;
+                        int[] actions = {NORTH, SOUTH, EAST, WEST};
+                        for (int a : actions) {
+                            double expectedUtility = 0.0;
+                            // Use your transitionProbability method
+                            for (int nextX = 0; nextX < mundo.width; nextX++) {
+                                for (int nextY = 0; nextY < mundo.height; nextY++) {
+                                    double transProb = transitionProbability(nextX, nextY, a, x, y);
+                                    expectedUtility += transProb * Vs[nextX][nextY];
+                                }
+                            }
+                            maxUtility = Math.max(maxUtility, expectedUtility);
+                        }
+                        newVs[x][y] = R_open + gamma * maxUtility;
+                    }
+                    delta = Math.max(delta, Math.abs(newVs[x][y] - Vs[x][y]));
+                }
+            }
+            // Update Vs
+            for (int x = 0; x < mundo.width; x++) {
+                for (int y = 0; y < mundo.height; y++) {
+                    Vs[x][y] = newVs[x][y];
+                }
+            }
+            myMaps.updateValues(Vs); // Visualize utilities
+        } while (delta > epsilon);
+
+        // Extract policy
+        policy = new int[mundo.width][mundo.height];
+        for (int x = 0; x < mundo.width; x++) {
+            for (int y = 0; y < mundo.height; y++) {
+                if (mundo.grid[x][y] == 0) { // Open space
+                    double maxUtility = Double.NEGATIVE_INFINITY;
+                    int bestAction = STAY;
+                    int[] actions = {NORTH, SOUTH, EAST, WEST};
+                    for (int a : actions) {
+                        double expectedUtility = 0.0;
+                        for (int nextX = 0; nextX < mundo.width; nextX++) {
+                            for (int nextY = 0; nextY < mundo.height; nextY++) {
+                                double transProb = transitionProbability(nextX, nextY, a, x, y);
+                                expectedUtility += transProb * Vs[nextX][nextY];
+                            }
+                        }
+                        if (expectedUtility > maxUtility) {
+                            maxUtility = expectedUtility;
+                            bestAction = a;
+                        }
+                    }
+                    policy[x][y] = bestAction;
+                } else {
+                    policy[x][y] = STAY; // Walls or terminal states
+                }
+            }
+        }
+    }
+
+
+void printVs() {
+    System.out.println("Vs Array:");
+    for (int y = 0; y < mundo.height; y++) {
+        for (int x = 0; x < mundo.width; x++) {
+            // Format to 3 decimal places, pad with spaces for alignment
+            System.out.printf("%.3f ", myMaps.vals[x][y]);
+        }
+        System.out.println(); // New line after each row
+    }
+    System.out.println();
+}
+
 // Helper method: Transition probability p(xt | at, xt-1)
 private double transitionProbability(int x, int y, int action, int prevX, int prevY) {
     int intendedX = prevX, intendedY = prevY;
@@ -541,15 +646,69 @@ private double sensorProbability(int x, int y, boolean[] sonarReadings) {
     // This is the function you'd need to write to make the robot move using your AI;
     // You do NOT need to write this function for this lab; it can remain as is
     int automaticAction() {
-        
-        return STAY;  // default action for now
+     // Check if position is effectively known
+        double maxProb = 0.0;
+        int posX = 0, posY = 0;
+        for (int x = 0; x < mundo.width; x++) {
+            for (int y = 0; y < mundo.height; y++) {
+                if (probs[x][y] > maxProb) {
+                    maxProb = probs[x][y];
+                    posX = x;
+                    posY = y;
+                }
+            }
+        }
+
+        // Scenario 1: Known position (either from knownPosition or high confidence)
+        if (maxProb > 0.99 || knownPosition) {
+            return policy[posX][posY];
+        } 
+        // Scenario 2: Unknown position
+        else {
+            int[] actions = {NORTH, SOUTH, EAST, WEST};
+            double[] expectedUtilities = new double[actions.length];
+
+            // Compute V(a) for each action
+            for (int i = 0; i < actions.length; i++) {
+                int a = actions[i];
+                double v_a = 0.0;
+                for (int x = 0; x < mundo.width; x++) {
+                    for (int y = 0; y < mundo.height; y++) {
+                        if (probs[x][y] > 0) { // Only consider states with non-zero belief
+                            double q_xt_a = 0.0;
+                            for (int nextX = 0; nextX < mundo.width; nextX++) {
+                                for (int nextY = 0; nextY < mundo.height; nextY++) {
+                                    double transProb = transitionProbability(nextX, nextY, a, x, y);
+                                    q_xt_a += transProb * Vs[nextX][nextY];
+                                }
+                            }
+                            v_a += probs[x][y] * q_xt_a; // V(a) = Σ Bel(xt) * Q(xt, a)
+                        }
+                    }
+                }
+                expectedUtilities[i] = v_a;
+            }
+
+            // Select action with maximum expected utility
+            int bestAction = STAY;
+            double maxUtility = Double.NEGATIVE_INFINITY;
+            for (int i = 0; i < actions.length; i++) {
+                if (expectedUtilities[i] > maxUtility) {
+                    maxUtility = expectedUtilities[i];
+                    bestAction = actions[i];
+                }
+            }
+            return bestAction;
+        }
     }
     
     void doStuff() {
         int action;
         
-        //valueIteration();  // TODO: function you will write in Part II of the lab
+        valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
+        System.out.println("Created values");
+        printVs();
         
         while (true) {
             try {
